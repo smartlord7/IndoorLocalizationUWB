@@ -15,14 +15,20 @@ function estimatedAnchors = calibrateAnchors(~, ~)
         distances = sqrt(sum((handles.trueAnchors - handles.trueTagPosition).^2, 2));
         distances_noisy = distances + randn(size(distances)) * 0.1; % Add noise with std deviation of 0.1 m
 
+        if isempty(handles.estimatedTagPosition)
+            tagPos = handles.trueAnchors;
+        else
+            tagPos = handles.estimatedTagPosition;
+        end
+
         % Choose algorithm for anchor calibration
         switch selectedAlgorithm
             case 'Nonlinear Least Squares'
-                estimatedAnchors = nonlinearLeastSquares(distances_noisy, handles.trueAnchors, handles.trueTagPosition);
+                estimatedAnchors = nonlinearLeastSquares(distances_noisy, handles.trueAnchors, tagPos);
             case 'Maximum Likelihood Estimation'
-                estimatedAnchors = maximumLikelihoodEstimation(distances_noisy, handles.trueAnchors, handles.trueTagPosition);
+                estimatedAnchors = maximumLikelihoodEstimation(distances_noisy, handles.trueAnchors, tagPos);
             case 'Extended Kalman Filter'
-                estimatedAnchors = extendedKalmanFilter(distances_noisy, handles.trueAnchors, handles.trueTagPosition);
+                estimatedAnchors = extendedKalmanFilter(distances_noisy, handles.trueAnchors, tagPos);
         end
 
         % Display estimated positions

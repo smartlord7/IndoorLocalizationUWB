@@ -10,4 +10,4 @@ function h = plotTag(position, color, displayName)
 
         % Plot the cube and return handle
         h = patch('Vertices', [X Y Z], 'Faces', F, 'FaceColor', color, 'EdgeColor', 'none', 'DisplayName', displayName, 'HandleVisibility', 'off');
-    end
+end

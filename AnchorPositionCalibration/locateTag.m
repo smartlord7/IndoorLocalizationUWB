@@ -37,6 +37,8 @@ function estimatedTagPlot = locateTag(~, ~)
 
         % Update plot with estimated tag position
         handles.estimatedTagPlot = plotTag(estimatedTagPosition, 'g', 'Estimated Tag');
+        % Update plot with estimated tag position
+        handles.estimatedTagPosition = estimatedTagPosition;
 
         % Store the updated handles structure
         guidata(gcbo, handles);

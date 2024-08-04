@@ -1,4 +1,4 @@
-function estimatedAnchors = extendedKalmanFilter(distances_noisy, initialAnchors, trueTagPosition)
+function estimatedAnchors = extendedKalmanFilter(distances_noisy, initialAnchors, tagPos)
     % Extended Kalman Filter (EKF) for Anchor Calibration
     numAnchors = size(initialAnchors, 1);
     
@@ -21,17 +21,17 @@ function estimatedAnchors = extendedKalmanFilter(distances_noisy, initialAnchors
         H = zeros(numMeasurements, numAnchors * 3);
         for i = 1:numMeasurements
             anchorPos = reshape(state, [], 3);
-            distances = sqrt(sum((anchorPos - trueTagPosition).^2, 2));
-            dX = (anchorPos(:, 1) - trueTagPosition(1)) ./ distances;
-            dY = (anchorPos(:, 2) - trueTagPosition(2)) ./ distances;
-            dZ = (anchorPos(:, 3) - trueTagPosition(3)) ./ distances;
+            distances = sqrt(sum((anchorPos - tagPos).^2, 2));
+            dX = (anchorPos(:, 1) - tagPos(1)) ./ distances;
+            dY = (anchorPos(:, 2) - tagPos(2)) ./ distances;
+            dZ = (anchorPos(:, 3) - tagPos(3)) ./ distances;
             H(i, (i-1)*3 + 1) = dX(i);
             H(i, (i-1)*3 + 2) = dY(i);
             H(i, (i-1)*3 + 3) = dZ(i);
         end
         
         % Update step
-        y = distances_noisy - sqrt(sum((reshape(state, [], 3) - trueTagPosition).^2, 2));
+        y = distances_noisy - sqrt(sum((reshape(state, [], 3) - tagPos).^2, 2));
         S = H * P_pred * H' + R;
         K = P_pred * H' / S;
         state = state_pred + K * y;
