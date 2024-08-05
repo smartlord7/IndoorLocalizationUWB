@@ -1,4 +1,4 @@
-function uwb_3d_anchor_calibration()
+function main()
     % Parameters
     fs = 1e9; % Sampling frequency
     pulseWidth = 2e-9; % Pulse width in seconds

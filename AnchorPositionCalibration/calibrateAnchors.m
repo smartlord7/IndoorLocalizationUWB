@@ -16,7 +16,7 @@ function estimatedAnchors = calibrateAnchors(~, ~)
     distances_noisy = distances + randn(size(distances)) * 0.1; % Add noise with std deviation of 0.1 m
 
     if isempty(handles.estimatedTagPosition)
-        tagPos = handles.trueTagPosition; % Fix typo: should be handles.trueTagPosition
+        tagPos = handles.trueTagPosition; 
     else
         tagPos = handles.estimatedTagPosition;
     end

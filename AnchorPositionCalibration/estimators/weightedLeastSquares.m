@@ -11,5 +11,9 @@ function estimatedAnchors = weightedLeastSquares(distances_noisy, trueAnchors, t
         b(i) = distances_noisy(i)^2 - sum(trueAnchors(i, :).^2) + sum(tagPos.^2);
     end
 
-    estimatedAnchors = (A' * W * A) \ (A' * W * b)';
+    % Solve for the estimated tag position
+    estimatedTagPos = (A' * W * A) \ (A' * W * b);
+
+    % Adjust the anchor positions based on the estimated tag position
+    estimatedAnchors = trueAnchors + repmat(estimatedTagPos' - tagPos, numAnchors, 1);
 end
