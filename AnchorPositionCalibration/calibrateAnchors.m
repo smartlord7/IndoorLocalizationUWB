@@ -62,8 +62,8 @@ function estimatedAnchors = calibrateAnchors(~, ~)
     disp('Estimated Anchor Positions (m):');
     disp(estimatedAnchors);
 
-    % Update plot with estimated anchors
-    handles.estimatedAnchorsPlot = plotAnchors(estimatedAnchors, 'g', 'Estimated Anchors');
+    % Example of updating estimated anchor positions with a smooth transition
+    handles.estimatedAnchorsPlot = plotAnchors(handles.estimatedAnchors, estimatedAnchors, 'g', 'Estimated Anchors', 0.5); % 2 seconds transition time
     handles.estimatedAnchors = estimatedAnchors;
 
     % Store the updated handles structure

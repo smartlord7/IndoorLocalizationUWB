@@ -12,7 +12,7 @@ function main()
     % Create Figure
     fig = figure('Name', 'Anchor Calibration', 'NumberTitle', 'off', 'KeyPressFcn', @moveTag);
     hold on;
-    plotAnchors(trueAnchors, 'b', 'True Anchors');
+    plotAnchors(zeros(size(trueAnchors)),  trueAnchors, 'b', 'Estimated Anchors', 0.5); % 2 seconds transition time
     tagPlot = plotTag(trueTagPosition, 'r', 'True Tag');
     % Ensure legend shows only one entry per type
     legend({'True Anchors', 'True Tag'});
@@ -82,8 +82,27 @@ function main()
         handles.anchorErrorAxes(i) = subplot(numAnchors + 1, 1, i + 1, 'Parent', handles.errorFigure);
         xlabel(handles.anchorErrorAxes(i), 'Movement Steps');
         ylabel(handles.anchorErrorAxes(i), 'Error (m)');
-        title(handles.anchorErrorAxes(i), ['Anchor ' num2str(i) ' Error']);
+        title(handles.anchorErrorAxes(i), ['Anchor ' num2str(i) ' Position Error']);
         handles.anchorErrorData{i} = []; % Initialize empty data for each anchor
+    end
+
+    % Create subplots for histograms
+    handles.errorHistFigure = figure('Name', 'Error Histograms', 'NumberTitle', 'off');
+    
+    % Tag Error Histogram Plot
+    handles.tagErrorHistAxes = subplot(numAnchors + 1, 1, 1, 'Parent', handles.errorHistFigure);
+    xlabel(handles.tagErrorHistAxes, 'Error (m)');
+    ylabel(handles.tagErrorHistAxes, 'Frequency');
+    title(handles.tagErrorHistAxes, 'Tag Position Error Histogram');
+    
+    % Anchor Error Histogram Plots
+    handles.anchorErrorHistAxes = gobjects(numAnchors, 1);
+    
+    for i = 1:numAnchors
+        handles.anchorErrorHistAxes(i) = subplot(numAnchors + 1, 1, i + 1, 'Parent', handles.errorHistFigure);
+        xlabel(handles.anchorErrorHistAxes(i), 'Error (m)');
+        ylabel(handles.anchorErrorHistAxes(i), 'Frequency');
+        title(handles.anchorErrorHistAxes(i), ['Anchor ' num2str(i) ' Error Histogram']);
     end
 
     % Store the handles structure
