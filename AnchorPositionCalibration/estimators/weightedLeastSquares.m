@@ -1,7 +1,7 @@
 function estimatedAnchors = weightedLeastSquares(distances_noisy, trueAnchors, tagPos)
     % Weighted Least Squares for anchor position estimation
     numAnchors = size(trueAnchors, 1);
-    weights = 1 ./ (distances_noisy + 0.1); % Example weights (adjust as needed)
+    weights = 1 ./ (distances_noisy + 0.1);
     W = diag(weights);
     A = zeros(numAnchors, 3);
     b = zeros(numAnchors, 1);
