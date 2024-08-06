@@ -1,4 +1,4 @@
-function updateAnchors(~, ~, positions, prevPositions, h)
+function updateAnchors(~, ~, prevPositions, positions, h)
     persistent currentStep;
     
     if isempty(currentStep) | mod(currentStep, 100) == 0 

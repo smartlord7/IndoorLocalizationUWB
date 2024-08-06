@@ -8,7 +8,6 @@ function h = plotAnchors(prevPositions, positions, color, displayName, transitio
     [X, Y, Z] = sphere; % Create sphere for anchor representation
     numAnchors = size(positions, 1);
     h = gobjects(numAnchors, 1);
-
   
     
     % Create anchor handles
@@ -21,6 +20,7 @@ function h = plotAnchors(prevPositions, positions, color, displayName, transitio
     % Initialize animation
     steps = 100; % Number of animation steps
     interval = transitionTime / steps; % Time between steps
+    
     
     % Create a timer to update the position
     t = timer('ExecutionMode', 'fixedRate', 'Period', interval, ...

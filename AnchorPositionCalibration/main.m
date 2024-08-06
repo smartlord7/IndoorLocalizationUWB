@@ -7,6 +7,7 @@ function main()
 
     % Define 3D Indoor Environment with Initial Anchor Positions
     trueAnchors = [0, 0, 0; 10, 0, 0; 0, 10, 0; 10, 10, 10]; % True anchor positions
+    nAnchors = 4;
     trueTagPosition = [5, 5, 5]; % True position of the tag
 
     % Create Figure
@@ -48,7 +49,7 @@ function main()
     handles.estimatedTagPlot = [];
     handles.estimatedTagPosition = [];
     handles.tagPlot = tagPlot; % Handle for the tag plot
-    handles.stepSize = 0.1;
+    handles.stepSize = 0.4;
     handles.tagErrorData = [];
     handles.anchorErrorData = cell(1, 4);
     handles.tagErrorAxes = [];
