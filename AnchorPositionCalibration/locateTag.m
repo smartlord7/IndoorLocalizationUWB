@@ -14,7 +14,7 @@ function estimatedTagPlot = locateTag(~, ~)
     end
 
     % Calculate Distances and ToA from calibrated anchors to true tag
-    distances = sqrt(sum((handles.estimatedAnchors - trueTagPosition).^2, 2));
+    distances = sqrt(sum((handles.estimatedAnchors - handles.trueTagPosition).^2, 2));
     c = 3e8; % Speed of light
     ToA = distances / c;
 
