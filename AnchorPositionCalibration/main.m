@@ -6,14 +6,15 @@ function main()
     c = 3e8; % Speed of light in m/s
 
     % Number of Anchors
-    nAnchors = 6;
+    nAnchors = 7;
     
     % Define 3D Indoor Environment with Random Anchor Positions
-    trueAnchors = 40 * rand(nAnchors, 3); % Random anchor positions in the cube [0, 40] x [0, 40] x [0, 40]
+    trueAnchors = 30 * rand(nAnchors, 3); % Random anchor positions in the cube [0, 40] x [0, 40] x [0, 40]
     trueTagPosition = [20, 20, 20]; % True position of the tag in the center of the cube
 
     % Create Figure
     fig = figure('Name', 'Anchor Calibration', 'NumberTitle', 'off', 'KeyPressFcn', @(src, event) moveTag(src, event));
+    ax = axes('Parent', fig);
     hold on;
     camlight; lighting phong; % Enhance visualization with lighting
     
@@ -22,10 +23,10 @@ function main()
     handles.tagPlot = plotTag(trueTagPosition, 'r', 'True Tag');
     
     % Plot transmission range spheres and boundaries
-    handles.anchorTransmissionRadius = 15;
+    handles.anchorTransmissionRadius = 20;
     handles.transmissionRangePlot = plotTransmissionRanges(trueAnchors, handles.anchorTransmissionRadius);
-    handles.impossibleBoundaryPlot = plotImpossibleLocalizationBoundary(trueAnchors, handles.anchorTransmissionRadius);
-    handles.usageBoundaryPlot = plotAnchorUsageBoundary(trueAnchors, handles.anchorTransmissionRadius);
+    handles.possibleBoundaryPlot = plotPossibleLocalizationBoundary(trueAnchors, handles.anchorTransmissionRadius);
+    [handles.usageBoundaryPlot, plotHandles] = plotAnchorUsageBoundary(trueAnchors, handles.anchorTransmissionRadius, ax);
     
     % Ensure legend shows only one entry per type
     legend({'True Anchors', 'True Tag'});
@@ -35,15 +36,23 @@ function main()
     xlabel('X (m)');
     ylabel('Y (m)');
     zlabel('Z (m)');
-    xlim([0 40]);
-    ylim([0 40]);
-    zlim([0 40]);
+
+     % Ensure the aspect ratio and plot box ratio are set to manual
+    set(ax, 'DataAspectRatioMode', 'manual');
+    set(ax, 'PlotBoxAspectRatioMode', 'manual');
+    % Set fixed axis limits
+    xlim(ax, [-20 50]); % Set fixed limits for X axis
+    ylim(ax, [-20 50]); % Set fixed limits for Y axis
+    zlim(ax, [-20 50]); % Set fixed limits for Z axis
     
+
+    % Ensure the aspect ratio is equal
+    axis(ax, 'equal');
+
     % Grid and View
-    grid on;
+    grid(ax, 'on');
     view(3);
     axis vis3d;
-    axis equal;
 
     % Dropdown menu for algorithm selection
     uicontrol('Style', 'text', 'String', 'Select Calibration Algorithm:', 'Position', [20 60 200 20]);
@@ -62,7 +71,7 @@ function main()
                                              'Callback', @(src, event) toggleVisibility(src, event, 'transmissionRange'));
 
     % Checkbox for impossible localization boundary visibility
-    handles.impossibleCheckbox = uicontrol('Style', 'checkbox', 'String', 'Show Impossible Localization Boundary', ...
+    handles.possibleCheckbox = uicontrol('Style', 'checkbox', 'String', 'Show Possible Localization Boundary', ...
                                            'Position', [20 140 250 30], 'Value', 1, ...
                                            'Callback', @(src, event) toggleVisibility(src, event, 'impossibleBoundary'));
 
@@ -70,6 +79,23 @@ function main()
     handles.usageCheckbox = uicontrol('Style', 'checkbox', 'String', 'Show Anchor Usage Boundary', ...
                                       'Position', [20 180 200 30], 'Value', 1, ...
                                       'Callback', @(src, event) toggleVisibility(src, event, 'usageBoundary'));
+
+    % Create checkboxes for toggling visibility on the right side
+    checkboxWidth = 150; % Width of the checkboxes
+    checkboxHeight = 20; % Height of each checkbox
+    padding = 10; % Padding between checkboxes
+    panelWidth = 200; % Width of the panel to hold checkboxes
+    
+    % Create a panel for checkboxes
+    panel = uipanel('Parent', fig, 'Position', [0.8, 0.1, 0.2, 0.3], 'Title', 'Toggle Anchor Usage Boundaries');
+    
+    % Create checkboxes for toggling visibility
+    for k = 1:numel(plotHandles)
+        uicontrol('Style', 'checkbox', 'String', sprintf('Show %d Anchors', k), ...
+            'Parent', panel, ...
+            'Position', [10, panelWidth - k * (checkboxHeight + padding), checkboxWidth, checkboxHeight], ...
+            'Value', 1, 'Callback', @(src, ~) toggleVisibility2(src, plotHandles(k)));
+    end
 
     % Initialize handles structure
     handles.estimatedAnchorsPlot = [];
@@ -89,8 +115,6 @@ function main()
     handles.distancesStd = 0.1;
     handles.tagPosStd = 0.1;
     handles.h = [];
-    handles.impossibleBoundaryPlot = [];
-    handles.usageBoundaryPlot = [];
     
     % Store the handles structure
     guidata(fig, handles);
@@ -145,4 +169,9 @@ function main()
         ylabel(handles.anchorErrorHistAxes(i), 'Frequency');
         title(handles.anchorErrorHistAxes(i), ['Anchor ' num2str(i) ' Error Histogram']);
     end
+
+
+    % Store the handles structure
+    guidata(fig, handles);
+
 end

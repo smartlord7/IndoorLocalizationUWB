@@ -7,7 +7,7 @@ function toggleVisibility(src, ~, plotType)
         case 'transmissionRange'
             set(handles.transmissionRangePlot, 'Visible', src.Value);
         case 'impossibleBoundary'
-            set(handles.impossibleBoundaryPlot, 'Visible', src.Value);
+            set(handles.possibleBoundaryPlot, 'Visible', src.Value);
         case 'usageBoundary'
             set(handles.usageBoundaryPlot, 'Visible', src.Value);
     end
