@@ -9,22 +9,28 @@ function main()
     nAnchors = 6;
     
     % Define 3D Indoor Environment with Random Anchor Positions
-    trueAnchors = 20 * rand(nAnchors, 3); % Random anchor positions in the cube [0, 10] x [0, 10] x [0, 10]
-    trueTagPosition = [5, 5, 5]; % True position of the tag
+    trueAnchors = 40 * rand(nAnchors, 3); % Random anchor positions in the cube [0, 40] x [0, 40] x [0, 40]
+    trueTagPosition = [20, 20, 20]; % True position of the tag in the center of the cube
 
     % Create Figure
     fig = figure('Name', 'Anchor Calibration', 'NumberTitle', 'off', 'KeyPressFcn', @(src, event) moveTag(src, event));
     hold on;
+    camlight; lighting phong; % Enhance visualization with lighting
     
     % Plot True Anchors and Tag
     handles.trueAnchorsPlot = plotAnchors(zeros(size(trueAnchors)), trueAnchors, 'b', 'True Anchors', 2, false); % 2 seconds transition time
     handles.tagPlot = plotTag(trueTagPosition, 'r', 'True Tag');
     
-    % Plot transmission range spheres
-    handles.transmissionRangePlot = plotTransmissionRanges(trueAnchors, 15); % Example radius value of 15
+    % Plot transmission range spheres and boundaries
+    handles.anchorTransmissionRadius = 15;
+    handles.transmissionRangePlot = plotTransmissionRanges(trueAnchors, handles.anchorTransmissionRadius);
+    handles.impossibleBoundaryPlot = plotImpossibleLocalizationBoundary(trueAnchors, handles.anchorTransmissionRadius);
+    handles.usageBoundaryPlot = plotAnchorUsageBoundary(trueAnchors, handles.anchorTransmissionRadius);
     
     % Ensure legend shows only one entry per type
     legend({'True Anchors', 'True Tag'});
+    
+    % Set axis limits for a 40x40x40 world
     title('3D Indoor Environment');
     xlabel('X (m)');
     ylabel('Y (m)');
@@ -32,6 +38,8 @@ function main()
     xlim([0 40]);
     ylim([0 40]);
     zlim([0 40]);
+    
+    % Grid and View
     grid on;
     view(3);
     axis vis3d;
@@ -51,7 +59,17 @@ function main()
     % Checkbox for transmission radius visibility
     handles.transmissionCheckbox = uicontrol('Style', 'checkbox', 'String', 'Show Transmission Range', ...
                                              'Position', [20 100 150 30], 'Value', 1, ...
-                                             'Callback', @(src, event) toggleTransmissionRange(src, event));
+                                             'Callback', @(src, event) toggleVisibility(src, event, 'transmissionRange'));
+
+    % Checkbox for impossible localization boundary visibility
+    handles.impossibleCheckbox = uicontrol('Style', 'checkbox', 'String', 'Show Impossible Localization Boundary', ...
+                                           'Position', [20 140 250 30], 'Value', 1, ...
+                                           'Callback', @(src, event) toggleVisibility(src, event, 'impossibleBoundary'));
+
+    % Checkbox for anchor usage boundary visibility
+    handles.usageCheckbox = uicontrol('Style', 'checkbox', 'String', 'Show Anchor Usage Boundary', ...
+                                      'Position', [20 180 200 30], 'Value', 1, ...
+                                      'Callback', @(src, event) toggleVisibility(src, event, 'usageBoundary'));
 
     % Initialize handles structure
     handles.estimatedAnchorsPlot = [];
@@ -71,8 +89,12 @@ function main()
     handles.distancesStd = 0.1;
     handles.tagPosStd = 0.1;
     handles.h = [];
-    handles.anchorTransmissionRadius = 15;
+    handles.impossibleBoundaryPlot = [];
+    handles.usageBoundaryPlot = [];
     
+    % Store the handles structure
+    guidata(fig, handles);
+
     % Create Calibrate Anchors button with callback
     uicontrol('Style', 'pushbutton', 'String', 'Calibrate Anchors', 'Position', [20 0 120 30], ...
         'Callback', @(src, event) calibrateAnchors(src, event));
@@ -123,7 +145,4 @@ function main()
         ylabel(handles.anchorErrorHistAxes(i), 'Frequency');
         title(handles.anchorErrorHistAxes(i), ['Anchor ' num2str(i) ' Error Histogram']);
     end
-
-    % Store the handles structure
-    guidata(fig, handles);
 end
