@@ -5,15 +5,17 @@ function main()
     pulseAmplitude = 1; % Pulse amplitude
     c = 3e8; % Speed of light in m/s
 
-    % Define 3D Indoor Environment with Initial Anchor Positions
-    trueAnchors = [0, 0, 0; 10, 0, 0; 0, 10, 0; 10, 10, 10]; % True anchor positions
+    % Number of Anchors
     nAnchors = 4;
+    
+    % Define 3D Indoor Environment with Random Anchor Positions
+    trueAnchors = 10 * rand(nAnchors, 3); % Random anchor positions in the cube [0, 10] x [0, 10] x [0, 10]
     trueTagPosition = [5, 5, 5]; % True position of the tag
 
     % Create Figure
     fig = figure('Name', 'Anchor Calibration', 'NumberTitle', 'off', 'KeyPressFcn', @(src, event) moveTag(src, event));
     hold on;
-    plotAnchors(zeros(size(trueAnchors)),  trueAnchors, 'b', 'Estimated Anchors', 0.5); % 2 seconds transition time
+    plotAnchors(zeros(size(trueAnchors)),  trueAnchors, 'b', 'True Anchors', 2); % 2 seconds transition time
     tagPlot = plotTag(trueTagPosition, 'r', 'True Tag');
     % Ensure legend shows only one entry per type
     legend({'True Anchors', 'True Tag'});
@@ -28,7 +30,6 @@ function main()
 
     % Dropdown menu for algorithm selection
     uicontrol('Style', 'text', 'String', 'Select Calibration Algorithm:', 'Position', [20 60 200 20]);
-    % Dropdown menu for algorithm selection
     algorithmMenu = uicontrol('Style', 'popupmenu', 'String', {'Nonlinear Least Squares', ...
                                                             'Maximum Likelihood Estimation', ...
                                                             'Extended Kalman Filter', ...
@@ -51,7 +52,7 @@ function main()
     handles.tagPlot = tagPlot; % Handle for the tag plot
     handles.stepSize = 0.4;
     handles.tagErrorData = [];
-    handles.anchorErrorData = cell(1, 4);
+    handles.anchorErrorData = cell(1, nAnchors);
     handles.tagErrorAxes = [];
     handles.initGuessRange = 0.1;
     handles.toaStd = 1e-9;
@@ -111,7 +112,4 @@ function main()
 
     % Store the handles structure
     guidata(fig, handles);
-
 end
-
-
