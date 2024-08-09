@@ -15,8 +15,8 @@ function estimatedAnchors = calibrateAnchors(~, ~)
 
     % Simulate distances with noise / GOD MODE
     distances = sqrt(sum((anchors - handles.trueTagPosition).^2, 2));
-    distances_noisy = distances + randn(size(distances)) * 0.1; % Add noise with std deviation of 0.1 m
-    tagPos = handles.trueTagPosition + randn(size(handles.trueTagPosition)) * 0.1; % Add noise with std deviation of 0.1 m
+    distances_noisy = distances + randn(size(distances)) * handles.distancesStd; % Add noise with std deviation of 0.1 m
+    tagPos = handles.trueTagPosition + randn(size(handles.trueTagPosition)) * handles.tagPosStd; % Add noise with std deviation of 0.1 m
 
     % Generate an initial guess for the anchor positio
     initialGuess = anchors;

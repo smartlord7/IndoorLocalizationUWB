@@ -19,14 +19,14 @@ function estimatedTagPlot = locateTag(~, ~)
     ToA = distances / c;
     
     % Add Noise to ToA
-    ToA_noisy = ToA + randn(size(ToA)) * 1e-9; % Add noise with standard deviation of 1 ns
+    ToA_noisy = ToA + randn(size(ToA)) * handles.toaStd; % Add noise with standard deviation of 1 ns
     
     % Calculate anchor calibration errors (deviation from true anchors)
     anchorErrors = sqrt(sum((handles.estimatedAnchors - handles.trueAnchors).^2, 2));
     
     % Multilateration to estimate tag position with anchor deviation penalty
     costFunction = @(pos) sum(((sqrt(sum((handles.estimatedAnchors - pos).^2, 2)) - ToA_noisy * c) + anchorErrors).^2);
-    
+
 
     if isempty(handles.estimatedTagPosition)
         initialGuess = handles.trueTagPosition;
@@ -60,6 +60,7 @@ function estimatedTagPlot = locateTag(~, ~)
     % Update plot with estimated tag position
     handles.estimatedTagPlot = plotTag(estimatedTagPosition, 'g', 'Estimated Tag');
     handles.estimatedTagPosition = estimatedTagPosition; % Store the new estimated tag position
+    estimatedTagPlot = handles.estimatedTagPlot;
 
     % Store the updated handles structure
     guidata(gcbo, handles);

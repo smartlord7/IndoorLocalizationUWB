@@ -11,7 +11,7 @@ function main()
     trueTagPosition = [5, 5, 5]; % True position of the tag
 
     % Create Figure
-    fig = figure('Name', 'Anchor Calibration', 'NumberTitle', 'off', 'KeyPressFcn', @moveTag);
+    fig = figure('Name', 'Anchor Calibration', 'NumberTitle', 'off', 'KeyPressFcn', @(src, event) moveTag(src, event));
     hold on;
     plotAnchors(zeros(size(trueAnchors)),  trueAnchors, 'b', 'Estimated Anchors', 0.5); % 2 seconds transition time
     tagPlot = plotTag(trueTagPosition, 'r', 'True Tag');
@@ -54,6 +54,9 @@ function main()
     handles.anchorErrorData = cell(1, 4);
     handles.tagErrorAxes = [];
     handles.initGuessRange = 0.1;
+    handles.toaStd = 1e-9;
+    handles.distancesStd = 0.1;
+    handles.tagPosStd = 0.1;
 
     % Create Calibrate Anchors button with callback
     uicontrol('Style', 'pushbutton', 'String', 'Calibrate Anchors', 'Position', [20 0 120 30], ...
