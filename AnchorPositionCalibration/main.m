@@ -9,13 +9,13 @@ function main()
     nAnchors = 4;
     
     % Define 3D Indoor Environment with Random Anchor Positions
-    trueAnchors = 10 * rand(nAnchors, 3); % Random anchor positions in the cube [0, 10] x [0, 10] x [0, 10]
+    trueAnchors = 20 * rand(nAnchors, 3); % Random anchor positions in the cube [0, 10] x [0, 10] x [0, 10]
     trueTagPosition = [5, 5, 5]; % True position of the tag
 
     % Create Figure
     fig = figure('Name', 'Anchor Calibration', 'NumberTitle', 'off', 'KeyPressFcn', @(src, event) moveTag(src, event));
     hold on;
-    plotAnchors(zeros(size(trueAnchors)),  trueAnchors, 'b', 'True Anchors', 2); % 2 seconds transition time
+    plotAnchors(zeros(size(trueAnchors)),  trueAnchors, 'b', 'True Anchors', 2, false); % 2 seconds transition time
     tagPlot = plotTag(trueTagPosition, 'r', 'True Tag');
     % Ensure legend shows only one entry per type
     legend({'True Anchors', 'True Tag'});
@@ -58,6 +58,7 @@ function main()
     handles.toaStd = 1e-9;
     handles.distancesStd = 0.1;
     handles.tagPosStd = 0.1;
+    handles.h = [];
 
     % Create Calibrate Anchors button with callback
     uicontrol('Style', 'pushbutton', 'String', 'Calibrate Anchors', 'Position', [20 0 120 30], ...
