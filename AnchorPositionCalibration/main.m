@@ -15,14 +15,23 @@ function main()
     % Create Figure
     fig = figure('Name', 'Anchor Calibration', 'NumberTitle', 'off', 'KeyPressFcn', @(src, event) moveTag(src, event));
     hold on;
-    plotAnchors(zeros(size(trueAnchors)),  trueAnchors, 'b', 'True Anchors', 2, false); % 2 seconds transition time
-    tagPlot = plotTag(trueTagPosition, 'r', 'True Tag');
+    
+    % Plot True Anchors and Tag
+    handles.trueAnchorsPlot = plotAnchors(zeros(size(trueAnchors)), trueAnchors, 'b', 'True Anchors', 2, false); % 2 seconds transition time
+    handles.tagPlot = plotTag(trueTagPosition, 'r', 'True Tag');
+    
+    % Plot transmission range spheres
+    handles.transmissionRangePlot = plotTransmissionRanges(trueAnchors, 15); % Example radius value of 15
+    
     % Ensure legend shows only one entry per type
     legend({'True Anchors', 'True Tag'});
     title('3D Indoor Environment');
     xlabel('X (m)');
     ylabel('Y (m)');
     zlabel('Z (m)');
+    xlim([0 40]);
+    ylim([0 40]);
+    zlim([0 40]);
     grid on;
     view(3);
     axis vis3d;
@@ -39,9 +48,12 @@ function main()
                                                             'Genetic Algorithm'}, ...
                           'Position', [20 30 200 30]);
 
+    % Checkbox for transmission radius visibility
+    handles.transmissionCheckbox = uicontrol('Style', 'checkbox', 'String', 'Show Transmission Range', ...
+                                             'Position', [20 100 150 30], 'Value', 1, ...
+                                             'Callback', @(src, event) toggleTransmissionRange(src, event));
 
     % Initialize handles structure
-    handles = struct();
     handles.estimatedAnchorsPlot = [];
     handles.estimatedAnchors = [];
     handles.algorithmMenu = algorithmMenu;
@@ -49,7 +61,7 @@ function main()
     handles.trueTagPosition = trueTagPosition;
     handles.estimatedTagPlot = [];
     handles.estimatedTagPosition = [];
-    handles.tagPlot = tagPlot; % Handle for the tag plot
+    handles.tagPlot = handles.tagPlot; % Handle for the tag plot
     handles.stepSize = 0.4;
     handles.tagErrorData = [];
     handles.anchorErrorData = cell(1, nAnchors);
@@ -60,7 +72,7 @@ function main()
     handles.tagPosStd = 0.1;
     handles.h = [];
     handles.anchorTransmissionRadius = 15;
-
+    
     % Create Calibrate Anchors button with callback
     uicontrol('Style', 'pushbutton', 'String', 'Calibrate Anchors', 'Position', [20 0 120 30], ...
         'Callback', @(src, event) calibrateAnchors(src, event));
