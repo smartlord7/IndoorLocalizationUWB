@@ -11,32 +11,15 @@ function estimatedAnchors = calibrateAnchors(~, ~)
     algorithms = get(handles.algorithmMenu, 'String');
     selectedAlgorithm = algorithms{get(handles.algorithmMenu, 'Value')};
 
-    % Simulate distances with noise
-    distances = sqrt(sum((handles.trueAnchors - handles.trueTagPosition).^2, 2));
+    anchors = handles.trueAnchors + rand(size(handles.trueAnchors)) * handles.initGuessRange;
+
+    % Simulate distances with noise / GOD MODE
+    distances = sqrt(sum((anchors - handles.trueTagPosition).^2, 2));
     distances_noisy = distances + randn(size(distances)) * 0.1; % Add noise with std deviation of 0.1 m
+    tagPos = handles.trueTagPosition + randn(size(handles.trueTagPosition)) * 0.1; % Add noise with std deviation of 0.1 m
 
-    if isempty(handles.estimatedTagPosition)
-        tagPos = handles.trueTagPosition; 
-    else
-        tagPos = handles.estimatedTagPosition;
-    end
-
-    % Define period for resetting initial guess (e.g., every 10 calls)
-    resetPeriod = 10;
-    
-    % Initialize or update the call counter
-    if ~isfield(handles, 'callCounter')
-        handles.callCounter = 0;
-    end
-    handles.callCounter = handles.callCounter + 1;
-
-    % Generate an initial guess for the anchor positions
-    % Periodically reset the initial guess to the true anchor positions
-    if mod(handles.callCounter, resetPeriod) == 0
-        initialGuess = handles.trueAnchors;
-    else
-        initialGuess = handles.trueAnchors + rand(size(handles.trueAnchors)) * handles.initGuessRange;
-    end
+    % Generate an initial guess for the anchor positio
+    initialGuess = anchors;
 
     % Choose algorithm for anchor calibration
     switch selectedAlgorithm

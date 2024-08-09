@@ -17,13 +17,17 @@ function estimatedTagPlot = locateTag(~, ~)
     distances = sqrt(sum((handles.estimatedAnchors - handles.trueTagPosition).^2, 2));
     c = 3e8; % Speed of light
     ToA = distances / c;
-
+    
     % Add Noise to ToA
     ToA_noisy = ToA + randn(size(ToA)) * 1e-9; % Add noise with standard deviation of 1 ns
-
-    % Multilateration to estimate tag position
-    costFunction = @(pos) sum((sqrt(sum((handles.estimatedAnchors - pos).^2, 2)) - ToA_noisy * c).^2);
     
+    % Calculate anchor calibration errors (deviation from true anchors)
+    anchorErrors = sqrt(sum((handles.estimatedAnchors - handles.trueAnchors).^2, 2));
+    
+    % Multilateration to estimate tag position with anchor deviation penalty
+    costFunction = @(pos) sum(((sqrt(sum((handles.estimatedAnchors - pos).^2, 2)) - ToA_noisy * c) + anchorErrors).^2);
+    
+
     if isempty(handles.estimatedTagPosition)
         initialGuess = handles.trueTagPosition;
     else
