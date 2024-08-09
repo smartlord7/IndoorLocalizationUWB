@@ -6,7 +6,7 @@ function main()
     c = 3e8; % Speed of light in m/s
 
     % Number of Anchors
-    nAnchors = 4;
+    nAnchors = 6;
     
     % Define 3D Indoor Environment with Random Anchor Positions
     trueAnchors = 20 * rand(nAnchors, 3); % Random anchor positions in the cube [0, 10] x [0, 10] x [0, 10]
@@ -59,6 +59,7 @@ function main()
     handles.distancesStd = 0.1;
     handles.tagPosStd = 0.1;
     handles.h = [];
+    handles.anchorTransmissionRadius = 15;
 
     % Create Calibrate Anchors button with callback
     uicontrol('Style', 'pushbutton', 'String', 'Calibrate Anchors', 'Position', [20 0 120 30], ...

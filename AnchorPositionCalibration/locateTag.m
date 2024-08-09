@@ -13,20 +13,33 @@ function estimatedTagPlot = locateTag(~, ~)
         delete(handles.estimatedTagPlot);
     end
 
-    % Calculate Distances and ToA from calibrated anchors to true tag
+    % Calculate distances from true tag position to each anchor
     distances = sqrt(sum((handles.estimatedAnchors - handles.trueTagPosition).^2, 2));
-    c = 3e8; % Speed of light
-    ToA = distances / c;
+
+    % Filter anchors based on transmission radius
+    validAnchors = distances <= handles.anchorTransmissionRadius;
     
+    if sum(validAnchors) < 3
+        msgbox('Not enough anchors within the transmission radius for localization.');
+        return;
+    end
+
+    % Only consider valid anchors
+    filteredAnchors = handles.estimatedAnchors(validAnchors, :);
+    filteredDistances = distances(validAnchors);
+
+    % Calculate ToA
+    c = 3e8; % Speed of light
+    ToA = filteredDistances / c;
+
     % Add Noise to ToA
     ToA_noisy = ToA + randn(size(ToA)) * handles.toaStd; % Add noise with standard deviation of 1 ns
-    
+
     % Calculate anchor calibration errors (deviation from true anchors)
-    anchorErrors = sqrt(sum((handles.estimatedAnchors - handles.trueAnchors).^2, 2));
+    anchorErrors = sqrt(sum((filteredAnchors - handles.trueAnchors(validAnchors, :)).^2, 2));
     
     % Multilateration to estimate tag position with anchor deviation penalty
-    costFunction = @(pos) sum(((sqrt(sum((handles.estimatedAnchors - pos).^2, 2)) - ToA_noisy * c) + anchorErrors).^2);
-
+    costFunction = @(pos) sum(((sqrt(sum((filteredAnchors - pos).^2, 2)) - ToA_noisy * c) + anchorErrors).^2);
 
     if isempty(handles.estimatedTagPosition)
         initialGuess = handles.trueTagPosition;
