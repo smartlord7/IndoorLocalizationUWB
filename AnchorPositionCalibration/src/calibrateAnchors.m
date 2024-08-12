@@ -20,6 +20,7 @@ function estimatedAnchors = calibrateAnchors(~, ~)
 
     % Generate an initial guess for the anchor positio
     initialGuess = anchors;
+    bounds = handles.bounds;
 
     % Choose algorithm for anchor calibration
     switch selectedAlgorithm
@@ -39,6 +40,8 @@ function estimatedAnchors = calibrateAnchors(~, ~)
             estimatedAnchors = mapEstimation(distances_noisy, initialGuess, tagPos);
         case 'Genetic Algorithm'
             estimatedAnchors = geneticAlgorithm(distances_noisy, initialGuess, tagPos, bounds);
+        case 'Linear Programming'
+            estimatedAnchors = linearProgramming(distances_noisy, trueAnchors, bounds);
     end
 
     % Display estimated positions
