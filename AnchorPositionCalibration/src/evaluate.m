@@ -47,15 +47,16 @@ function evaluate()
         tagPositionsStatic = repmat([10, 10, 10], numSamples, 1);
 
         % Prepare CSV files to store results
-        csvFileAnchor = fopen('anchor_errors.csv', 'w');
-        csvFileTag = fopen('tag_errors.csv', 'w');
+        csvFileAnchor = fopen('../data/anchor_errors.csv', 'w');
+        csvFileTag = fopen('../data/tag_errors.csv', 'w');
         
         % Headers
         fprintf(csvFileAnchor, 'Estimator,Scenario,Anchor,Sample,Error\n');
         fprintf(csvFileTag, 'Estimator,Scenario,Sample,Error\n');
 
         % Loop over each estimator
-        estimators = {'NLS', 'MLE'};
+        estimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA'};
+
         for estimator = estimators
             estName = estimator{1};
             
@@ -77,7 +78,7 @@ function evaluate()
         fclose(csvFileTag);
         
         % Compute statistics and perform tests
-        analyzeResults('anchor_errors.csv', 'tag_errors.csv', estimators, numAnchors);
+        analyzeResults('../data/anchor_errors.csv', '../data/tag_errors.csv', estimators, numAnchors);
     end
 
     % Function to simulate calibration
