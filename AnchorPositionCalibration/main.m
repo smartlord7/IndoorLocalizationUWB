@@ -16,7 +16,7 @@ function main()
     fig = figure('Name', 'Anchor Calibration', 'NumberTitle', 'off', 'KeyPressFcn', @(src, event) moveTag(src, event));
     ax = axes('Parent', fig);
     hold on;
-    camlight; lighting phong; % Enhance visualization with lighting
+    camlight; lighting gouraud; % Enhance visualization with lighting
     
     % Plot True Anchors and Tag
     handles.trueAnchorsPlot = plotAnchors(zeros(size(trueAnchors)), trueAnchors, 'b', 'True Anchors', 2, false); % 2 seconds transition time
