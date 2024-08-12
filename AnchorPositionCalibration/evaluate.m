@@ -169,29 +169,34 @@ function evaluate()
         if all(normalityTestResults) && varTestResults
             % ANOVA and multiple comparisons
             [pVal, tbl, stats] = anova1(errorsTable.Error, errorsTable.Estimator, 'off');
-            results = multcompare(stats, 'CType', 'bonferroni');
-            
-            % Create a symmetrical matrix for p-values
-            numEstimators = length(estimators);
-            pValuesMatrix = NaN(numEstimators, numEstimators);
-            
-            % Fill in the p-values
-            for i = 1:size(results, 1)
-                idx1 = results(i, 1);
-                idx2 = results(i, 2);
-                pValue = results(i, 6);
-                pValuesMatrix(idx1, idx2) = pValue;
-                pValuesMatrix(idx2, idx1) = pValue;
-            end
-            
-            % Plot heatmap of p-values
-            figure;
-            heatmap(estimators, estimators, pValuesMatrix, 'Colormap', parula, 'ColorLimits', [0, 1]);
-            title(sprintf('Heatmap of P-values for %s %s Estimators', scenario, errorType));
-            xlabel('Estimator');
-            ylabel('Estimator');
-            saveas(gcf, sprintf('%s_%s_Estimator_PValue_Heatmap.png', scenario, errorType));
+        else
+            % Kruskal-Wallis and multiple comparisons
+            [pVal, tbl, stats] = kruskalwallis(errorsTable.Error, errorsTable.Estimator, 'off');
         end
+
+        results = multcompare(stats, 'CType', 'bonferroni');
+        
+        % Create a symmetrical matrix for p-values
+        numEstimators = length(estimators);
+        pValuesMatrix = NaN(numEstimators, numEstimators);
+        
+        % Fill in the p-values
+        for i = 1:size(results, 1)
+            idx1 = results(i, 1);
+            idx2 = results(i, 2);
+            pValue = results(i, 6);
+            pValuesMatrix(idx1, idx2) = pValue;
+            pValuesMatrix(idx2, idx1) = pValue;
+        end
+        
+        % Plot heatmap of p-values
+        figure('Position', get(0, 'Screensize'));
+        heatmap(estimators, estimators, pValuesMatrix, 'Colormap', parula, 'ColorLimits', [0, 1]);
+        title(sprintf('Heatmap of P-values for %s %s Estimators', scenario, errorType));
+        xlabel('Estimator');
+        ylabel('Estimator');
+        saveas(gcf, sprintf('%s_%s_Estimator_PValue_Heatmap.png', scenario, errorType));      
+
         
         % Plot bar plot for mean errors
         figure;
@@ -202,11 +207,13 @@ function evaluate()
         ylabel('Mean Error');
         saveas(gcf, sprintf('Mean_%s_Error_BarPlot_%s.png', errorType, scenario));
         
+        grouped = sortrows(varfun(@mean, meanErrors, 'InputVariables', 'mean_Error', ...
+            'GroupingVariables', {'Estimator'}));
         % Ranking of estimators based on mean errors
-        [~, rank] = sortrows(meanErrors.mean_Error, 'ascend');
+        [~, rank] = sortrows(grouped.mean_mean_Error, 'ascend');
         
         fprintf('Ranking for %s Calibration in %s Scenario:\n', errorType, scenario);
-        disp(meanErrors.Estimator(rank));
+        disp(grouped.Estimator(rank));
     end
     
     % Function to generate a random path
@@ -220,7 +227,7 @@ function evaluate()
         [numAnchors, ~] = size(rmseData);
 
         % Plot RMSE evolution for each anchor
-        figure;
+        figure('Position', get(0, 'Screensize'));
         for anchor = 1:numAnchors
             subplot(numAnchors, 1, anchor);
             plot(rmseData(anchor, :), 'LineWidth', 1.5); % Each line represents the RMSE of an anchor over samples
@@ -233,7 +240,7 @@ function evaluate()
         saveas(gcf, sprintf('%s_%s_RMSE_Evolution.png', estimator, scenario));
         
         % Plot RMSE histograms for each anchor
-        figure;
+        figure('Position', get(0, 'Screensize'));
         for anchor = 1:numAnchors
             subplot(numAnchors, 1, anchor);
             histogram(rmseData(anchor, :), 'Normalization', 'pdf', 'FaceColor', [0.2, 0.6, 0.8]); % Normalized histogram
@@ -246,7 +253,7 @@ function evaluate()
         saveas(gcf, sprintf('%s_%s_RMSE_Histogram.png', estimator, scenario));
         
         % Plot RMSE boxplots for each anchor
-        figure;
+        figure('Position', get(0, 'Screensize'));
         boxplot(rmseData', 'Labels', arrayfun(@(x) sprintf('Anchor %d', x), 1:numAnchors, 'UniformOutput', false));
         title(sprintf('%s - %s: RMSE Boxplot', estimator, scenario));
         xlabel('Anchor');
