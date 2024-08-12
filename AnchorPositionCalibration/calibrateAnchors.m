@@ -38,7 +38,7 @@ function estimatedAnchors = calibrateAnchors(~, ~)
         case 'Maximum A Posteriori'
             estimatedAnchors = mapEstimation(distances_noisy, initialGuess, tagPos);
         case 'Genetic Algorithm'
-            estimatedAnchors = geneticAlgorithm(distances_noisy, initialGuess, tagPos);
+            estimatedAnchors = geneticAlgorithm(distances_noisy, initialGuess, tagPos, bounds);
     end
 
     % Display estimated positions

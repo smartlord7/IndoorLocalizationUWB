@@ -8,7 +8,8 @@ function main()
     % Number of Anchors
     nAnchors = 6;
     % Define 3D Indoor Environment with Random Anchor Positions
-    trueAnchors = 30 * rand(nAnchors, 3); % Random anchor positions in the cube [0, 40] x [0, 40] x [0, 40]
+    mx = 30;
+    trueAnchors = mx * rand(nAnchors, 3); % Random anchor positions in the cube [0, 30] x [0, 30] x [0, 30]
     trueTagPosition = [20, 20, 20]; % True position of the tag in the center of the cube
 
     % Create Figure
@@ -109,11 +110,20 @@ function main()
     handles.tagErrorData = [];
     handles.anchorErrorData = cell(1, nAnchors);
     handles.tagErrorAxes = [];
-    handles.initGuessRange = 0.1;
+    handles.initGuessRange = 0.5;
     handles.toaStd = 1e-9;
     handles.distancesStd = 0.1;
     handles.tagPosStd = 0.1;
     handles.h = [];
+
+    lb = repmat([0 0 0], nAnchors, 1); % Lower bounds
+    ub = repmat([mx mx mx], nAnchors, 1);  % Upper bounds
+    sz = size(lb);
+    bounds = zeros(2, sz(1), sz(2));
+    bounds(1, :, :) = lb;
+    bounds(2, :, :) = ub;
+
+    handles.bounds = bounds;
     
     % Store the handles structure
     guidata(fig, handles);
