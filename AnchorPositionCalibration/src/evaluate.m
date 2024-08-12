@@ -55,7 +55,7 @@ function evaluate()
         fprintf(csvFileTag, 'Estimator,Scenario,Sample,Error\n');
 
         % Loop over each estimator
-        estimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA'};
+        estimators = {'NLS', 'MLE'};
         for estimator = estimators
             estName = estimator{1};
             
@@ -195,17 +195,16 @@ function evaluate()
         title(sprintf('Heatmap of P-values for %s %s Estimators', scenario, errorType));
         xlabel('Estimator');
         ylabel('Estimator');
-        saveas(gcf, sprintf('%s_%s_Estimator_PValue_Heatmap.png', scenario, errorType));      
+        saveas(gcf, sprintf('../img/%s_%s_Estimator_PValue_Heatmap.png', scenario, errorType));      
 
         
         % Plot bar plot for mean errors
         figure;
-        bar(varfun(@mean, meanErrors, 'InputVariables', 'mean_Error', ...
-            'GroupingVariables', {'Estimator'}).mean_mean_Error);
+        boxplot(meanErrors.mean_Error, meanErrors.Estimator);
         title(sprintf('Mean %s Error for Each Estimator (%s Scenario)', errorType, scenario));
         xlabel('Estimator');
         ylabel('Mean Error');
-        saveas(gcf, sprintf('Mean_%s_Error_BarPlot_%s.png', errorType, scenario));
+        saveas(gcf, sprintf('../img/Mean_%s_Error_BoxPlot_%s.png', errorType, scenario));
         
         grouped = sortrows(varfun(@mean, meanErrors, 'InputVariables', 'mean_Error', ...
             'GroupingVariables', {'Estimator'}));
@@ -237,7 +236,7 @@ function evaluate()
             grid on;
         end
         sgtitle(sprintf('%s - %s: RMSE Evolution', estimator, scenario)); % Super title for all subplots
-        saveas(gcf, sprintf('%s_%s_RMSE_Evolution.png', estimator, scenario));
+        saveas(gcf, sprintf('../img/%s_%s_RMSE_Evolution.png', estimator, scenario));
         
         % Plot RMSE histograms for each anchor
         figure('Position', get(0, 'Screensize'));
@@ -250,7 +249,7 @@ function evaluate()
             grid on;
         end
         sgtitle(sprintf('%s - %s: RMSE Histogram', estimator, scenario)); % Super title for all subplots
-        saveas(gcf, sprintf('%s_%s_RMSE_Histogram.png', estimator, scenario));
+        saveas(gcf, sprintf('../img/%s_%s_RMSE_Histogram.png', estimator, scenario));
         
         % Plot RMSE boxplots for each anchor
         figure('Position', get(0, 'Screensize'));
@@ -259,7 +258,7 @@ function evaluate()
         xlabel('Anchor');
         ylabel('RMSE');
         grid on;
-        saveas(gcf, sprintf('%s_%s_RMSE_Boxplot.png', estimator, scenario));
+        saveas(gcf, sprintf('../img/%s_%s_RMSE_Boxplot.png', estimator, scenario));
 
         pause(0.1);
         close all;
