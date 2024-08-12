@@ -25,10 +25,9 @@ function evaluate()
     uicontrol('Style', 'text', 'Position', [10, 430, 150, 20], 'String', 'ToA Noise:');
     toaNoiseEdit = uicontrol('Style', 'edit', 'Position', [170, 430, 100, 20], 'String', num2str(defaultToaNoise));
 
-    
     uicontrol('Style', 'pushbutton', 'Position', [10, 390, 150, 30], 'String', 'Run Simulation', ...
         'Callback', @(~, ~) runSimulation());
-    
+
     % Function to Run Simulation
     function runSimulation()
         numAnchors = str2double(numAnchorsEdit.String);
@@ -36,7 +35,6 @@ function evaluate()
         anchorNoise = str2double(anchorNoiseEdit.String);
         distanceNoise = str2double(distanceNoiseEdit.String);
         toaNoise = str2double(toaNoiseEdit.String);
-
 
         % Generate true anchor positions
         trueAnchors = 40 * rand(numAnchors, 3); 
@@ -48,7 +46,13 @@ function evaluate()
         % Static tag at a fixed position
         tagPositionsStatic = repmat([10, 10, 10], numSamples, 1);
 
+        % Prepare CSV files to store results
+        csvFileAnchor = fopen('anchor_errors.csv', 'w');
+        csvFileTag = fopen('tag_errors.csv', 'w');
         
+        % Headers
+        fprintf(csvFileAnchor, 'Estimator,Scenario,Anchor,Sample,Error\n');
+        fprintf(csvFileTag, 'Estimator,Scenario,Sample,Error\n');
 
         % Loop over each estimator
         estimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA'};
@@ -56,20 +60,26 @@ function evaluate()
             estName = estimator{1};
             
             % Scenario 1: Static Tag
-            % Simulate calibration with static tag
             rmseStatic = simulateCalibration(trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, toaNoise, numSamples);
-            % Plot and save results
             plotAndSaveResults(rmseStatic, estName, 'Static');
 
             % Scenario 2: Moving Tag
-            % Simulate calibration with moving tag
             rmseMoving = simulateCalibration(trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, toaNoise, numSamples);
-            % Plot and save results
             plotAndSaveResults(rmseMoving, estName, 'Moving');
         
+            % Save errors to CSV
+            saveErrorsToCSV(rmseStatic, estName, 'Static', csvFileAnchor, csvFileTag);
+            saveErrorsToCSV(rmseMoving, estName, 'Moving', csvFileAnchor, csvFileTag);
         end
+        
+        % Close CSV files
+        fclose(csvFileAnchor);
+        fclose(csvFileTag);
+        
+        % Compute statistics and perform tests
+        analyzeResults('anchor_errors.csv', 'tag_errors.csv', estimators, numAnchors);
     end
-    
+
     % Function to simulate calibration
     function rmse = simulateCalibration(trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, toaNoise, numSamples)
         % Initialize matrix to accumulate RMSE
@@ -109,53 +119,142 @@ function evaluate()
             rmse(numAnchors + 1, sample) = sqrt(mean(((estimatedTagPos - currentTagPos).^2), 2));
         end
     end
+
+    % Function to save errors to CSV
+    function saveErrorsToCSV(rmse, estimator, scenario, csvFileAnchor, csvFileTag)
+        numAnchors = size(rmse, 1) - 1;
+        for i = 1:numAnchors
+            for j = 1:size(rmse, 2)
+                fprintf(csvFileAnchor, '%s,%s,Anchor%d,%d,%.6f\n', estimator, scenario, i, j, rmse(i, j));
+            end
+        end
+        
+        for j = 1:size(rmse, 2)
+            fprintf(csvFileTag, '%s,%s,%d,%.6f\n', estimator, scenario, j, rmse(end, j));
+        end
+    end
+    
+    function analyzeResults(anchorErrorCSV, tagErrorCSV, estimators, numAnchors)
+        % Load the data
+        anchorErrors = readtable(anchorErrorCSV);
+        tagErrors = readtable(tagErrorCSV);
+        
+        % Separate scenarios for anchor errors
+        staticAnchorErrors = anchorErrors(strcmp(anchorErrors.Scenario, 'Static'), :);
+        movingAnchorErrors = anchorErrors(strcmp(anchorErrors.Scenario, 'Moving'), :);
+        
+        % Separate scenarios for tag errors
+        staticTagErrors = tagErrors(strcmp(tagErrors.Scenario, 'Static'), :);
+        movingTagErrors = tagErrors(strcmp(tagErrors.Scenario, 'Moving'), :);
+        
+        % Analyze each scenario and subgroup
+        analyzeSubgroup(staticAnchorErrors, estimators, 'Static', 'Anchor');
+        analyzeSubgroup(movingAnchorErrors, estimators, 'Moving', 'Anchor');
+        analyzeSubgroup(staticTagErrors, estimators, 'Static', 'Tag');
+        analyzeSubgroup(movingTagErrors, estimators, 'Moving', 'Tag');
+    end
+
+    function analyzeSubgroup(errorsTable, estimators, scenario, errorType)
+        % Compute mean errors
+        meanErrors = varfun(@mean, errorsTable, 'InputVariables', 'Error', ...
+            'GroupingVariables', {'Estimator', 'Sample'});
+        
+        % Normality test (e.g., Shapiro-Wilk)
+        normalityTestResults = arrayfun(@(x) lillietest(errorsTable.Error(strcmp(errorsTable.Estimator, x))), estimators);
+
+        % Constant variance test (e.g., Bartlett's test)
+        [varTestResults, varTestP] = vartestn(errorsTable.Error, errorsTable.Estimator, 'TestType', 'Bartlett', 'Display', 'off');
+        
+        % Perform parametric tests if normality and equal variance hold
+        if all(normalityTestResults) && varTestResults
+            % ANOVA and multiple comparisons
+            [pVal, tbl, stats] = anova1(errorsTable.Error, errorsTable.Estimator, 'off');
+            results = multcompare(stats, 'CType', 'bonferroni');
+            
+            % Create a symmetrical matrix for p-values
+            numEstimators = length(estimators);
+            pValuesMatrix = NaN(numEstimators, numEstimators);
+            
+            % Fill in the p-values
+            for i = 1:size(results, 1)
+                idx1 = results(i, 1);
+                idx2 = results(i, 2);
+                pValue = results(i, 6);
+                pValuesMatrix(idx1, idx2) = pValue;
+                pValuesMatrix(idx2, idx1) = pValue;
+            end
+            
+            % Plot heatmap of p-values
+            figure;
+            heatmap(estimators, estimators, pValuesMatrix, 'Colormap', parula, 'ColorLimits', [0, 1]);
+            title(sprintf('Heatmap of P-values for %s %s Estimators', scenario, errorType));
+            xlabel('Estimator');
+            ylabel('Estimator');
+            saveas(gcf, sprintf('%s_%s_Estimator_PValue_Heatmap.png', scenario, errorType));
+        end
+        
+        % Plot bar plot for mean errors
+        figure;
+        bar(varfun(@mean, meanErrors, 'InputVariables', 'mean_Error', ...
+            'GroupingVariables', {'Estimator'}).mean_mean_Error);
+        title(sprintf('Mean %s Error for Each Estimator (%s Scenario)', errorType, scenario));
+        xlabel('Estimator');
+        ylabel('Mean Error');
+        saveas(gcf, sprintf('Mean_%s_Error_BarPlot_%s.png', errorType, scenario));
+        
+        % Ranking of estimators based on mean errors
+        [~, rank] = sortrows(meanErrors.mean_Error, 'ascend');
+        
+        fprintf('Ranking for %s Calibration in %s Scenario:\n', errorType, scenario);
+        disp(meanErrors.Estimator(rank));
+    end
     
     % Function to generate a random path
     function path = generateRandomPath(steps)
         path = cumsum(randn(steps, 3), 1) + [10, 10, 10];
     end
     
-   % Function to plot and save results
-function plotAndSaveResults(rmseData, estimator, scenario)
-    % Extract dimensions
-    [numAnchors, ~] = size(rmseData);
+    % Function to plot and save results
+    function plotAndSaveResults(rmseData, estimator, scenario)
+        % Extract dimensions
+        [numAnchors, ~] = size(rmseData);
 
-    % Plot RMSE evolution for each anchor
-    figure;
-    for anchor = 1:numAnchors
-        subplot(numAnchors, 1, anchor);
-        plot(rmseData(anchor, :), 'LineWidth', 1.5); % Each line represents the RMSE of an anchor over samples
-        title(sprintf('Anchor %d - RMSE Evolution', anchor));
-        xlabel('Sample');
+        % Plot RMSE evolution for each anchor
+        figure;
+        for anchor = 1:numAnchors
+            subplot(numAnchors, 1, anchor);
+            plot(rmseData(anchor, :), 'LineWidth', 1.5); % Each line represents the RMSE of an anchor over samples
+            title(sprintf('Anchor %d - RMSE Evolution', anchor));
+            xlabel('Sample');
+            ylabel('RMSE');
+            grid on;
+        end
+        sgtitle(sprintf('%s - %s: RMSE Evolution', estimator, scenario)); % Super title for all subplots
+        saveas(gcf, sprintf('%s_%s_RMSE_Evolution.png', estimator, scenario));
+        
+        % Plot RMSE histograms for each anchor
+        figure;
+        for anchor = 1:numAnchors
+            subplot(numAnchors, 1, anchor);
+            histogram(rmseData(anchor, :), 'Normalization', 'pdf', 'FaceColor', [0.2, 0.6, 0.8]); % Normalized histogram
+            title(sprintf('Anchor %d - RMSE Histogram', anchor));
+            xlabel('RMSE');
+            ylabel('Probability Density');
+            grid on;
+        end
+        sgtitle(sprintf('%s - %s: RMSE Histogram', estimator, scenario)); % Super title for all subplots
+        saveas(gcf, sprintf('%s_%s_RMSE_Histogram.png', estimator, scenario));
+        
+        % Plot RMSE boxplots for each anchor
+        figure;
+        boxplot(rmseData', 'Labels', arrayfun(@(x) sprintf('Anchor %d', x), 1:numAnchors, 'UniformOutput', false));
+        title(sprintf('%s - %s: RMSE Boxplot', estimator, scenario));
+        xlabel('Anchor');
         ylabel('RMSE');
         grid on;
-    end
-    sgtitle(sprintf('%s - %s: RMSE Evolution', estimator, scenario)); % Super title for all subplots
-    saveas(gcf, sprintf('%s_%s_RMSE_Evolution.png', estimator, scenario));
-    
-    % Plot RMSE histograms for each anchor
-    figure;
-    for anchor = 1:numAnchors
-        subplot(numAnchors, 1, anchor);
-        histogram(rmseData(anchor, :), 'Normalization', 'pdf', 'FaceColor', [0.2, 0.6, 0.8]); % Normalized histogram
-        title(sprintf('Anchor %d - RMSE Histogram', anchor));
-        xlabel('RMSE');
-        ylabel('Probability Density');
-        grid on;
-    end
-    sgtitle(sprintf('%s - %s: RMSE Histogram', estimator, scenario)); % Super title for all subplots
-    saveas(gcf, sprintf('%s_%s_RMSE_Histogram.png', estimator, scenario));
-    
-    % Plot RMSE boxplots for each anchor
-    figure;
-    boxplot(rmseData', 'Labels', arrayfun(@(x) sprintf('Anchor %d', x), 1:numAnchors, 'UniformOutput', false));
-    title(sprintf('%s - %s: RMSE Boxplot', estimator, scenario));
-    xlabel('Anchor');
-    ylabel('RMSE');
-    grid on;
-    saveas(gcf, sprintf('%s_%s_RMSE_Boxplot.png', estimator, scenario));
+        saveas(gcf, sprintf('%s_%s_RMSE_Boxplot.png', estimator, scenario));
 
-    pause(0.5);
-    close all;
-end
+        pause(0.1);
+        close all;
+    end
 end
