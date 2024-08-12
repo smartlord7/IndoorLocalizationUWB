@@ -13,7 +13,7 @@ function h = plotAnchors(prevPositions, positions, color, displayName, transitio
     for i = 1:numAnchors
         h(i) = surf(X + positions(i, 1), Y + positions(i, 2), Z + positions(i, 3), ...
                     'FaceColor', color, 'EdgeColor', 'none', 'DisplayName', displayName, ...
-                    'HandleVisibility', 'off');
+                    'HandleVisibility', 'on');
     end
     if animate == true
     

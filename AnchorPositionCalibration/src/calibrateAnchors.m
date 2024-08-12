@@ -41,7 +41,9 @@ function estimatedAnchors = calibrateAnchors(~, ~)
         case 'Genetic Algorithm'
             estimatedAnchors = geneticAlgorithm(distances_noisy, initialGuess, tagPos, bounds);
         case 'Linear Programming'
-            estimatedAnchors = linearProgramming(distances_noisy, trueAnchors, bounds);
+            estimatedAnchors = linearProgramming(distances_noisy, initialGuess, bounds);
+        case 'Shallow Neural Network'
+        estimatedAnchors = customNeuralNetwork(distances_noisy, initialGuess, tagPos, bounds);
     end
 
     % Display estimated positions
