@@ -6,8 +6,7 @@ function main()
     c = 3e8; % Speed of light in m/s
 
     % Number of Anchors
-    nAnchors = 7;
-    
+    nAnchors = 6;
     % Define 3D Indoor Environment with Random Anchor Positions
     trueAnchors = 30 * rand(nAnchors, 3); % Random anchor positions in the cube [0, 40] x [0, 40] x [0, 40]
     trueTagPosition = [20, 20, 20]; % True position of the tag in the center of the cube

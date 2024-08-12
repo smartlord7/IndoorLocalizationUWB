@@ -49,7 +49,7 @@ function evaluate()
         
 
         % Loop over each estimator
-        estimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'MAP', 'GA'};
+        estimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA'};
         for estimator = estimators
             estName = estimator{1};
             
@@ -58,6 +58,12 @@ function evaluate()
             rmseStatic = simulateCalibration(trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, false, tagMovementSteps);
             % Plot and save results
             plotAndSaveResults(rmseStatic, estName, 'Static');
+
+             % Scenario 2: Moving Tag
+            % Simulate calibration with moving tag
+            rmseMoving = simulateCalibration(trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, true, tagMovementSteps);
+            % Plot and save results
+            plotAndSaveResults(rmseMoving, estName, 'Moving');
         
         end
     end
@@ -75,6 +81,7 @@ function evaluate()
             % Simulate distances with noise for the current tag position
             trueDistances = sqrt(sum((initialAnchors - currentTagPos).^2, 2));
             noisyDistances = trueDistances + randn(size(trueDistances)) * distanceNoise;
+            estimatedAnchors = [];
             
             % Estimate anchor positions based on the noisy distances
             switch estimator
@@ -96,6 +103,11 @@ function evaluate()
             
             % Compute RMSE for anchors
             rmse(1:numAnchors, step) = sqrt(mean(((estimatedAnchors - trueAnchors).^2), 2));
+
+            if isMoving
+                estimatedTagPos = trilateration(trueAnchors, estimatedAnchors, currentTagPos, 1000, distanceNoise, distanceNoise);
+                rmse(numAnchors + 1, step) = sqrt(mean(((estimatedTagPos - currentTagPos).^2), 2));
+            end
         end
     end
     
