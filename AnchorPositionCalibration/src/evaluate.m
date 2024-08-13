@@ -35,9 +35,17 @@ function evaluate()
         anchorNoise = str2double(anchorNoiseEdit.String);
         distanceNoise = str2double(distanceNoiseEdit.String);
         toaNoise = str2double(toaNoiseEdit.String);
+        mx = 40;
+
+        lb = repmat([0 0 0], numAnchors, 1); % Lower bounds
+        ub = repmat([mx mx mx], numAnchors, 1);  % Upper bounds
+        sz = size(lb);
+        bounds = zeros(2, sz(1), sz(2));
+        bounds(1, :, :) = lb;
+        bounds(2, :, :) = ub;
 
         % Generate true anchor positions
-        trueAnchors = 40 * rand(numAnchors, 3); 
+        trueAnchors = mx * rand(numAnchors, 3); 
         % Add Gaussian noise to anchor positions for initial guess
         initialAnchors = trueAnchors + anchorNoise * randn(size(trueAnchors));
         
@@ -61,11 +69,11 @@ function evaluate()
             estName = estimator{1};
             
             % Scenario 1: Static Tag
-            rmseStatic = simulateCalibration(trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, toaNoise, numSamples);
+            rmseStatic = simulateCalibration(trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, toaNoise, numSamples, bounds);
             plotAndSaveResults(rmseStatic, estName, 'Static');
 
             % Scenario 2: Moving Tag
-            rmseMoving = simulateCalibration(trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, toaNoise, numSamples);
+            rmseMoving = simulateCalibration(trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, toaNoise, numSamples, bounds);
             plotAndSaveResults(rmseMoving, estName, 'Moving');
         
             % Save errors to CSV
@@ -82,7 +90,7 @@ function evaluate()
     end
 
     % Function to simulate calibration
-    function rmse = simulateCalibration(trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, toaNoise, numSamples)
+    function rmse = simulateCalibration(trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, toaNoise, numSamples, bounds)
         % Initialize matrix to accumulate RMSE
         rmse = zeros(numAnchors + 1, numSamples);
 
@@ -111,7 +119,7 @@ function evaluate()
                 case 'IR'
                     estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, currentTagPos);
                 case 'GA'
-                    estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, currentTagPos);
+                    estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, currentTagPos, bounds);
             end
             
             % Compute RMSE for anchors
