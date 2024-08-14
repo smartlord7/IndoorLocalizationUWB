@@ -8,9 +8,9 @@ function estimatedAnchors = linearLeastSquares(distances_noisy, trueAnchors, tag
     % Initial guess for the anchor positions (same as true anchors)
     initialGuess = trueAnchors(:);
     
-    % Use nonlinear least squares solver to minimize the residuals
-    options = optimoptions('lsqnonlin', 'Display', 'off');
-    [estimatedAnchorsVec, ~] = lsqnonlin(objectiveFunction, initialGuess, [], [], options);
+    % Use linear least squares solver to minimize the residuals
+    options = optimoptions('lsqlin', 'Display', 'off');
+    [estimatedAnchorsVec, ~] = lsqlin(objectiveFunction, initialGuess, [], [], options);
     
     % Reshape the vector of estimated anchors back into matrix form
     estimatedAnchors = reshape(estimatedAnchorsVec, [numAnchors, 3]);
