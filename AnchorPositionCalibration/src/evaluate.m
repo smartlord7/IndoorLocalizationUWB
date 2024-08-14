@@ -8,6 +8,7 @@ function evaluate()
     defaultAnchorNoise = 2;
     defaultDistanceNoise = 0.3;
     defaultToaNoise = 2e-9;
+    defaultNumTopologies = 30;
 
     % UI Controls
     uicontrol('Style', 'text', 'Position', [10, 550, 150, 20], 'String', 'Number of Anchors:');
@@ -24,6 +25,9 @@ function evaluate()
 
     uicontrol('Style', 'text', 'Position', [10, 430, 150, 20], 'String', 'ToA Noise:');
     toaNoiseEdit = uicontrol('Style', 'edit', 'Position', [170, 430, 100, 20], 'String', num2str(defaultToaNoise));
+
+    uicontrol('Style', 'text', 'Position', [10, 400, 150, 20], 'String', 'Number of Topologies:');
+    numTopologiesEdit = uicontrol('Style', 'edit', 'Position', [170, 400, 100, 20], 'String', num2str(defaultNumTopologies));
 
     % Multiselect Listbox for Estimators
     uicontrol('Style', 'text', 'Position', [10, 400, 150, 20], 'String', 'Select Estimators:');
@@ -50,6 +54,7 @@ function evaluate()
         anchorNoise = str2double(anchorNoiseEdit.String);
         distanceNoise = str2double(distanceNoiseEdit.String);
         toaNoise = str2double(toaNoiseEdit.String);
+        numTopologies = str2double(numTopologiesEdit.String);
         mx = 40;
 
         lb = repmat([0 0 0], numAnchors, 1); % Lower bounds
@@ -59,10 +64,6 @@ function evaluate()
         bounds(1, :, :) = lb;
         bounds(2, :, :) = ub;
 
-        % Generate true anchor positions
-        trueAnchors = mx * rand(numAnchors, 3); 
-        % Add Gaussian noise to anchor positions for initial guess
-        initialAnchors = trueAnchors + anchorNoise * randn(size(trueAnchors));
         
         % Generate random tag positions along a path
         tagPositionsMoving = generateRandomPath(numSamples, mx);
@@ -74,20 +75,20 @@ function evaluate()
         csvFileTag = fopen('../data/tag_errors.csv', 'w');
         
         % Headers
-        fprintf(csvFileAnchor, 'Estimator,Scenario,Anchor,Sample,Error\n');
-        fprintf(csvFileTag, 'Estimator,Scenario,Sample,Error\n');
+        fprintf(csvFileAnchor, 'Estimator,Scenario,Topology,Anchor,Sample,Error\n');
+        fprintf(csvFileTag, 'Estimator,Scenario,Topology,Sample,Error\n');
 
         % Loop over each selected estimator
         for i = 1:length(selectedEstimators)
             estName = selectedEstimators{i};
             
             % Scenario 1: Static Tag
-            rmseStatic = simulateCalibration(trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, toaNoise, numSamples, bounds);
-            plotAndSaveResults(rmseStatic, estName, 'Static');
+            rmseStatic = simulateCalibration(numTopologies, mx, anchorNoise, tagPositionsStatic, estName, numAnchors, distanceNoise, toaNoise, numSamples, bounds);
+            %plotAndSaveResults(rmseStatic, estName, 'Static');
 
             % Scenario 2: Moving Tag
-            rmseMoving = simulateCalibration(trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, toaNoise, numSamples, bounds);
-            plotAndSaveResults(rmseMoving, estName, 'Moving');
+            rmseMoving = simulateCalibration(numTopologies, mx, anchorNoise, tagPositionsMoving, estName, numAnchors, distanceNoise, toaNoise, numSamples, bounds);
+            %plotAndSaveResults(rmseMoving, estName, 'Moving');
         
             % Save errors to CSV
             saveErrorsToCSV(rmseStatic, estName, 'Static', csvFileAnchor, csvFileTag);
@@ -103,58 +104,72 @@ function evaluate()
     end
 
     % Function to simulate calibration
-    function rmse = simulateCalibration(trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, toaNoise, numSamples, bounds)
+    function rmse = simulateCalibration(numTopologies, mx, anchorNoise, tagPositions, estimator, numAnchors, distanceNoise, toaNoise, numSamples, bounds)
         % Initialize matrix to accumulate RMSE
-        rmse = zeros(numAnchors + 1, numSamples);
+        rmse = zeros(numAnchors + 1, numSamples, numTopologies);
 
-        % Perform calibration and compute RMSE
-        for sample = 1:numSamples
-            % Current tag position
-            currentTagPos = tagPositions(sample, :);
-            
-            % Simulate distances with noise for the current tag position
-            trueDistances = sqrt(sum((trueAnchors - currentTagPos).^2, 2));
-            noisyDistances = trueDistances + randn(size(trueDistances)) * distanceNoise;
-            estimatedAnchors = [];
-            
-            % Estimate anchor positions based on the noisy distances
-            switch estimator
-                case 'NLS'
-                    estimatedAnchors = nonlinearLeastSquares(noisyDistances, initialAnchors, currentTagPos);
-                case 'MLE'
-                    estimatedAnchors = maximumLikelihoodEstimation(noisyDistances, initialAnchors, currentTagPos);
-                case 'EKF'
-                    estimatedAnchors = extendedKalmanFilter(noisyDistances, distanceNoise, initialAnchors, currentTagPos);
-                case 'LLS'
-                    estimatedAnchors = linearLeastSquares(noisyDistances, initialAnchors, currentTagPos);
-                case 'WLS'
-                    estimatedAnchors = weightedLeastSquares(noisyDistances, initialAnchors, currentTagPos);
-                case 'IR'
-                    estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, currentTagPos);
-                case 'GA'
-                    estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, currentTagPos, bounds);
-                case 'C'
-                    estimatedAnchors = control(initialAnchors);
+        for topology=1:numTopologies
+            % Generate true anchor positions
+            trueAnchors = mx * rand(numAnchors, 3); 
+            % Add Gaussian noise to anchor positions for initial guess
+            initialAnchors = trueAnchors + anchorNoise * randn(size(trueAnchors));
+    
+            % Perform calibration and compute RMSE
+            for sample = 1:numSamples
+                % Current tag position
+                currentTagPos = tagPositions(sample, :);
+                
+                % Simulate distances with noise for the current tag position
+                trueDistances = sqrt(sum((trueAnchors - currentTagPos).^2, 2));
+                noisyDistances = trueDistances + randn(size(trueDistances)) * distanceNoise;
+                estimatedAnchors = [];
+                
+                % Estimate anchor positions based on the noisy distances
+                switch estimator
+                    case 'NLS'
+                        estimatedAnchors = nonlinearLeastSquares(noisyDistances, initialAnchors, currentTagPos);
+                    case 'MLE'
+                        estimatedAnchors = maximumLikelihoodEstimation(noisyDistances, initialAnchors, currentTagPos);
+                    case 'EKF'
+                        estimatedAnchors = extendedKalmanFilter(noisyDistances, distanceNoise * distanceNoise, initialAnchors, currentTagPos);
+                    case 'LLS'
+                        estimatedAnchors = linearLeastSquares(noisyDistances, initialAnchors, currentTagPos);
+                    case 'WLS'
+                        estimatedAnchors = weightedLeastSquares(noisyDistances, initialAnchors, currentTagPos);
+                    case 'IR'
+                        estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, currentTagPos);
+                    case 'GA'
+                        estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, currentTagPos, bounds);
+                    case 'C'
+                        estimatedAnchors = control(initialAnchors);
+                end
+                
+                % Compute RMSE for anchors
+                rmse(1:numAnchors, sample, topology) = sqrt(mean(((estimatedAnchors - trueAnchors).^2), 2));
+                estimatedTagPos = trilateration(trueAnchors, estimatedAnchors, currentTagPos, 1000, toaNoise, distanceNoise);
+                rmse(numAnchors + 1, sample, topology) = sqrt(mean(((estimatedTagPos - currentTagPos).^2), 2));
             end
-            
-            % Compute RMSE for anchors
-            rmse(1:numAnchors, sample) = sqrt(mean(((estimatedAnchors - trueAnchors).^2), 2));
-            estimatedTagPos = trilateration(trueAnchors, estimatedAnchors, currentTagPos, 1000, toaNoise, distanceNoise);
-            rmse(numAnchors + 1, sample) = sqrt(mean(((estimatedTagPos - currentTagPos).^2), 2));
         end
     end
 
-    % Function to save errors to CSV
-    function saveErrorsToCSV(rmse, estimator, scenario, csvFileAnchor, csvFileTag)
-        numAnchors = size(rmse, 1) - 1;
-        for i = 1:numAnchors
-            for j = 1:size(rmse, 2)
-                fprintf(csvFileAnchor, '%s,%s,Anchor%d,%d,%.6f\n', estimator, scenario, i, j, rmse(i, j));
+   % Function to save errors to CSV
+    function saveErrorsToCSV(error, estimator, scenario, csvFileAnchor, csvFileTag)
+        [numAnchors, numSamples, numTopologies, ~] = size(error);
+        
+        % Save anchor errors
+        for t = 1:numTopologies
+            for sample = 1:numSamples
+                for anchorIdx = 1:numAnchors-1
+                    fprintf(csvFileAnchor, '%s,%s,%d,%d,%d,%.6f\n', estimator, scenario, t, anchorIdx, sample, error(anchorIdx, sample, t));
+                end
             end
         end
         
-        for j = 1:size(rmse, 2)
-            fprintf(csvFileTag, '%s,%s,%d,%.6f\n', estimator, scenario, j, rmse(end, j));
+        % Save tag errors
+        for t = 1:numTopologies
+            for sample = 1:numSamples
+                fprintf(csvFileTag, '%s,%s,%d,%d,%.6f\n', estimator, scenario, t, sample, error(numAnchors, sample, t));
+            end
         end
     end
     
@@ -181,21 +196,24 @@ function evaluate()
     function analyzeSubgroup(errorsTable, estimators, scenario, errorType)
         % Compute mean errors
         meanErrors = varfun(@mean, errorsTable, 'InputVariables', 'Error', ...
+            'GroupingVariables', {'Estimator', 'Topology', 'Sample'});
+
+        meanErrors = varfun(@mean, meanErrors, 'InputVariables', 'mean_Error', ...
             'GroupingVariables', {'Estimator', 'Sample'});
         
         % Normality test (e.g., Shapiro-Wilk)
-        normalityTestResults = arrayfun(@(x) lillietest(errorsTable.Error(strcmp(errorsTable.Estimator, x))), estimators);
+        normalityTestResults = arrayfun(@(x) lillietest(meanErrors.mean_mean_Error(strcmp(meanErrors.Estimator, x))), estimators);
 
         % Constant variance test (e.g., Bartlett's test)
-        [varTestResults, varTestP] = vartestn(errorsTable.Error, errorsTable.Estimator, 'TestType', 'Bartlett', 'Display', 'off');
+        [varTestResults, varTestP] = vartestn(meanErrors.mean_mean_Error, 'TestType', 'Bartlett', 'Display', 'off');
         
         % Perform parametric tests if normality and equal variance hold
         if all(normalityTestResults) && varTestResults
             % ANOVA and multiple comparisons
-            [pVal, tbl, stats] = anova1(errorsTable.Error, errorsTable.Estimator, 'off');
+            [pVal, tbl, stats] = anova1(meanErrors.mean_mean_Error, meanErrors.Estimator, 'off');
         else
             % Kruskal-Wallis and multiple comparisons
-            [pVal, tbl, stats] = kruskalwallis(errorsTable.Error, errorsTable.Estimator, 'off');
+            [pVal, tbl, stats] = kruskalwallis(meanErrors.mean_mean_Error, meanErrors.Estimator, 'off');
         end
 
         results = multcompare(stats, 'CType', 'bonferroni');
@@ -224,16 +242,16 @@ function evaluate()
         
         % Plot bar plot for mean errors
         figure('Position', get(0, 'Screensize'));
-        boxplot(meanErrors.mean_Error, meanErrors.Estimator);
+        boxplot(meanErrors.mean_mean_Error, meanErrors.Estimator);
         title(sprintf('Mean %s Error for Each Estimator (%s Scenario)', errorType, scenario));
         xlabel('Estimator');
         ylabel('Mean Error');
         saveas(gcf, sprintf('../img/Mean_%s_Error_BoxPlot_%s.png', errorType, scenario));
         
-        grouped = sortrows(varfun(@mean, meanErrors, 'InputVariables', 'mean_Error', ...
+        grouped = sortrows(varfun(@mean, meanErrors, 'InputVariables', 'mean_mean_Error', ...
             'GroupingVariables', {'Estimator'}));
         % Ranking of estimators based on mean errors
-        [~, rank] = sortrows(grouped.mean_mean_Error, 'ascend');
+        [~, rank] = sortrows(grouped.mean_mean_mean_Error, 'ascend');
         
         fprintf('Ranking for %s Calibration in %s Scenario:\n', errorType, scenario);
         disp(grouped.Estimator(rank));
