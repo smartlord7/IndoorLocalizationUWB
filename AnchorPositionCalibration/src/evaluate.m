@@ -65,7 +65,7 @@ function evaluate()
         initialAnchors = trueAnchors + anchorNoise * randn(size(trueAnchors));
         
         % Generate random tag positions along a path
-        tagPositionsMoving = generateRandomPath(numSamples);
+        tagPositionsMoving = generateRandomPath(numSamples, mx);
         % Static tag at a fixed position
         tagPositionsStatic = repmat([10, 10, 10], numSamples, 1);
 
@@ -240,8 +240,8 @@ function evaluate()
     end
     
     % Function to generate a random path
-    function path = generateRandomPath(steps)
-        path = cumsum(randn(steps, 3), 1) + [10, 10, 10];
+    function path = generateRandomPath(steps, mx)
+        path = cumsum(randn(steps, 3), 1) + [mx, mx, mx];
     end
     
     % Function to plot and save results
