@@ -1,12 +1,12 @@
-function estimatedAnchors = extendedKalmanFilter(distances_noisy, initialAnchors, tagPos)
+function estimatedAnchors = extendedKalmanFilter(distances_noisy, noiseVariance, initialGuess, tagPos)
     % Extended Kalman Filter (EKF) for Anchor Calibration
-    numAnchors = size(initialAnchors, 1);
+    numAnchors = size(initialGuess, 1);
     
     % Initialize state and covariance
-    state = initialAnchors(:);
+    state = initialGuess(:);
     P = eye(numAnchors * 3) * 1e-3; % Initial covariance
     Q = eye(numAnchors * 3) * 1e-4; % Process noise covariance
-    R = diag(ones(numAnchors, 1) * 0.1); % Measurement noise covariance
+    R = diag(ones(numAnchors, 1) * noiseVariance); % Measurement noise covariance
     
     % Number of measurements
     numMeasurements = length(distances_noisy);

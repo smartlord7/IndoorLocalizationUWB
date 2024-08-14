@@ -5,9 +5,9 @@ function evaluate()
     % Default Parameters
     defaultNumAnchors = 6;
     defaultNumSamples = 1000;
-    defaultAnchorNoise = 0.1;
-    defaultDistanceNoise = 0.05;
-    defaultToaNoise = 1e-9;
+    defaultAnchorNoise = 2;
+    defaultDistanceNoise = 0.3;
+    defaultToaNoise = 2e-9;
 
     % UI Controls
     uicontrol('Style', 'text', 'Position', [10, 550, 150, 20], 'String', 'Number of Anchors:');
@@ -25,7 +25,22 @@ function evaluate()
     uicontrol('Style', 'text', 'Position', [10, 430, 150, 20], 'String', 'ToA Noise:');
     toaNoiseEdit = uicontrol('Style', 'edit', 'Position', [170, 430, 100, 20], 'String', num2str(defaultToaNoise));
 
-    uicontrol('Style', 'pushbutton', 'Position', [10, 390, 150, 30], 'String', 'Run Simulation', ...
+    % Multiselect Listbox for Estimators
+    uicontrol('Style', 'text', 'Position', [10, 400, 150, 20], 'String', 'Select Estimators:');
+    estimatorListBox = uicontrol('Style', 'listbox', 'Position', [170, 300, 150, 100], ...
+        'String', {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'}, 'Max', 7, 'Min', 1, ...
+        'Value', 1:7, 'Callback', @updateSelection);
+
+    % Selected estimators list
+    selectedEstimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'};
+
+    % Function to update selected estimators
+    function updateSelection(~, ~)
+        selectedEstimators = estimatorListBox.String(estimatorListBox.Value);
+    end
+
+    % Run Simulation button
+    uicontrol('Style', 'pushbutton', 'Position', [10, 250, 150, 30], 'String', 'Run Simulation', ...
         'Callback', @(~, ~) runSimulation());
 
     % Function to Run Simulation
@@ -62,11 +77,9 @@ function evaluate()
         fprintf(csvFileAnchor, 'Estimator,Scenario,Anchor,Sample,Error\n');
         fprintf(csvFileTag, 'Estimator,Scenario,Sample,Error\n');
 
-        % Loop over each estimator
-        estimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA'};
-
-        for estimator = estimators
-            estName = estimator{1};
+        % Loop over each selected estimator
+        for i = 1:length(selectedEstimators)
+            estName = selectedEstimators{i};
             
             % Scenario 1: Static Tag
             rmseStatic = simulateCalibration(trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, toaNoise, numSamples, bounds);
@@ -86,7 +99,7 @@ function evaluate()
         fclose(csvFileTag);
         
         % Compute statistics and perform tests
-        analyzeResults('../data/anchor_errors.csv', '../data/tag_errors.csv', estimators, numAnchors);
+        analyzeResults('../data/anchor_errors.csv', '../data/tag_errors.csv', selectedEstimators);
     end
 
     % Function to simulate calibration
@@ -100,7 +113,7 @@ function evaluate()
             currentTagPos = tagPositions(sample, :);
             
             % Simulate distances with noise for the current tag position
-            trueDistances = sqrt(sum((initialAnchors - currentTagPos).^2, 2));
+            trueDistances = sqrt(sum((trueAnchors - currentTagPos).^2, 2));
             noisyDistances = trueDistances + randn(size(trueDistances)) * distanceNoise;
             estimatedAnchors = [];
             
@@ -111,7 +124,7 @@ function evaluate()
                 case 'MLE'
                     estimatedAnchors = maximumLikelihoodEstimation(noisyDistances, initialAnchors, currentTagPos);
                 case 'EKF'
-                    estimatedAnchors = extendedKalmanFilter(noisyDistances, initialAnchors, currentTagPos);
+                    estimatedAnchors = extendedKalmanFilter(noisyDistances, distanceNoise, initialAnchors, currentTagPos);
                 case 'LLS'
                     estimatedAnchors = linearLeastSquares(noisyDistances, initialAnchors, currentTagPos);
                 case 'WLS'
@@ -120,6 +133,8 @@ function evaluate()
                     estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, currentTagPos);
                 case 'GA'
                     estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, currentTagPos, bounds);
+                case 'C'
+                    estimatedAnchors = control(initialAnchors);
             end
             
             % Compute RMSE for anchors
@@ -143,7 +158,7 @@ function evaluate()
         end
     end
     
-    function analyzeResults(anchorErrorCSV, tagErrorCSV, estimators, numAnchors)
+    function analyzeResults(anchorErrorCSV, tagErrorCSV, estimators)
         % Load the data
         anchorErrors = readtable(anchorErrorCSV);
         tagErrors = readtable(tagErrorCSV);
@@ -208,7 +223,7 @@ function evaluate()
 
         
         % Plot bar plot for mean errors
-        figure;
+        figure('Position', get(0, 'Screensize'));
         boxplot(meanErrors.mean_Error, meanErrors.Estimator);
         title(sprintf('Mean %s Error for Each Estimator (%s Scenario)', errorType, scenario));
         xlabel('Estimator');
