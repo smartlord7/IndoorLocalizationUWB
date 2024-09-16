@@ -208,7 +208,7 @@ function evaluate()
         [varTestResults, varTestP] = vartestn(meanErrors.mean_mean_Error, 'TestType', 'Bartlett', 'Display', 'off');
         
         % Perform parametric tests if normality and equal variance hold
-        if all(normalityTestResults) && varTestResults
+        if all(normalityTestResults) && all(varTestResults)
             % ANOVA and multiple comparisons
             [pVal, tbl, stats] = anova1(meanErrors.mean_mean_Error, meanErrors.Estimator, 'off');
         else
@@ -216,7 +216,7 @@ function evaluate()
             [pVal, tbl, stats] = kruskalwallis(meanErrors.mean_mean_Error, meanErrors.Estimator, 'off');
         end
 
-        results = multcompare(stats, 'CType', 'bonferroni');
+        results = multcompare(stats, 'CType', 'bonferroni', 'Display', 'off');
         
         % Create a symmetrical matrix for p-values
         numEstimators = length(estimators);

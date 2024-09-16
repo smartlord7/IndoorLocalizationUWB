@@ -4,7 +4,7 @@ function estimatedAnchors = iterativeRefinement(distances_noisy, initialAnchors,
     % initialAnchors: Initial guess for anchor positions
     % tagPos: Current tag position
 
-    maxIter = 1000; % Maximum number of iterations
+    maxIter = 100000; % Maximum number of iterations
     tol = 1e-6; % Convergence tolerance
     
     % Initialize with the provided initial guess

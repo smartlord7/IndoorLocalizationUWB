@@ -1,4 +1,4 @@
-function residuals = calcResiduals(anchors, trueAnchors, distances_noisy, tagPos, numAnchors)
+function residuals = calcResiduals(anchors, ~, distances_noisy, tagPos, numAnchors)
     % Reshape the vector of anchor positions into matrix form
     anchors = reshape(anchors, [numAnchors, 3]);
     
