@@ -4,7 +4,7 @@ function estimatedAnchors = geneticAlgorithm(distances_noisy, initialGuess, tagP
     numVars = numAnchors * 3;
 
     % Fitness function to minimize
-    fitnessFunction = @(anchors) sum((sqrt(sum((reshape(anchors, [], 3) - tagPos).^2, 2)) - distances_noisy).^2);
+    fitnessFunction = @(anchors) sum(calcResiduals(anchors, initialGuess, distances_noisy, tagPos, numAnchors).^2);
 
     % Define the genetic algorithm parameters
     options = optimoptions('ga', ...
