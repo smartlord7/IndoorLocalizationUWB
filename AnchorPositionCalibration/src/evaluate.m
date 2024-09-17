@@ -32,11 +32,11 @@ function evaluate()
     % Multiselect Listbox for Estimators
     uicontrol('Style', 'text', 'Position', [10, 400, 150, 20], 'String', 'Select Estimators:');
     estimatorListBox = uicontrol('Style', 'listbox', 'Position', [170, 300, 150, 100], ...
-        'String', {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'}, 'Max', 7, 'Min', 1, ...
+        'String', {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'DDN', 'C'}, 'Max', 7, 'Min', 1, ...
         'Value', 1:7, 'Callback', @updateSelection);
 
     % Selected estimators list
-    selectedEstimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'};
+    selectedEstimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'DDN', 'C'};
 
     % Function to update selected estimators
     function updateSelection(~, ~)
@@ -84,11 +84,11 @@ function evaluate()
             
             % Scenario 1: Static Tag
             rmseStatic = simulateCalibration(numTopologies, mx, anchorNoise, tagPositionsStatic, estName, numAnchors, distanceNoise, toaNoise, numSamples, bounds);
-            %plotAndSaveResults(rmseStatic, estName, 'Static');
+            plotAndSaveResults(rmseStatic, estName, 'Static');
 
             % Scenario 2: Moving Tag
             rmseMoving = simulateCalibration(numTopologies, mx, anchorNoise, tagPositionsMoving, estName, numAnchors, distanceNoise, toaNoise, numSamples, bounds);
-            %plotAndSaveResults(rmseMoving, estName, 'Moving');
+            plotAndSaveResults(rmseMoving, estName, 'Moving');
         
             % Save errors to CSV
             saveErrorsToCSV(rmseStatic, estName, 'Static', csvFileAnchor, csvFileTag);
@@ -123,31 +123,34 @@ function evaluate()
                 trueDistances = sqrt(sum((trueAnchors - currentTagPos).^2, 2));
                 noisyDistances = trueDistances + randn(size(trueDistances)) * distanceNoise;
                 estimatedAnchors = [];
+
+                estimatedTagPos = trilateration(trueAnchors, trueAnchors, currentTagPos, 1000, toaNoise, distanceNoise);
+                rmse(numAnchors + 1, sample, topology) = sqrt(mean(((estimatedTagPos - currentTagPos).^2), 2));
                 
                 % Estimate anchor positions based on the noisy distances
                 switch estimator
                     case 'NLS'
-                        estimatedAnchors = nonlinearLeastSquares(noisyDistances, initialAnchors, currentTagPos);
+                        estimatedAnchors = nonlinearLeastSquares(noisyDistances, initialAnchors, estimatedTagPos);
                     case 'MLE'
-                        estimatedAnchors = maximumLikelihoodEstimation(noisyDistances, initialAnchors, currentTagPos);
+                        estimatedAnchors = maximumLikelihoodEstimation(noisyDistances, initialAnchors, estimatedTagPos);
                     case 'EKF'
-                        estimatedAnchors = extendedKalmanFilter(noisyDistances, distanceNoise * distanceNoise, initialAnchors, currentTagPos);
+                        estimatedAnchors = extendedKalmanFilter(noisyDistances, distanceNoise * distanceNoise, initialAnchors, estimatedTagPos);
                     case 'LLS'
-                        estimatedAnchors = linearLeastSquares(noisyDistances, initialAnchors, currentTagPos);
+                        estimatedAnchors = linearLeastSquares(noisyDistances, initialAnchors, estimatedTagPos);
                     case 'WLS'
-                        estimatedAnchors = weightedLeastSquares(noisyDistances, initialAnchors, currentTagPos);
+                        estimatedAnchors = nonLinearWeightedLeastSquares(noisyDistances, initialAnchors, estimatedTagPos);
                     case 'IR'
-                        estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, currentTagPos);
+                        estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, estimatedTagPos);
                     case 'GA'
-                        estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, currentTagPos, bounds);
+                        estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, estimatedTagPos, bounds);
+                    case 'DDN'
+                        %estimatedAnchors = combinedModel(noisyDistances, denoisingAutoencoder, regressionNetwork);
                     case 'C'
                         estimatedAnchors = control(initialAnchors);
                 end
                 
                 % Compute RMSE for anchors
                 rmse(1:numAnchors, sample, topology) = sqrt(mean(((estimatedAnchors - trueAnchors).^2), 2));
-                estimatedTagPos = trilateration(trueAnchors, estimatedAnchors, currentTagPos, 1000, toaNoise, distanceNoise);
-                rmse(numAnchors + 1, sample, topology) = sqrt(mean(((estimatedTagPos - currentTagPos).^2), 2));
             end
         end
     end
@@ -183,14 +186,14 @@ function evaluate()
         movingAnchorErrors = anchorErrors(strcmp(anchorErrors.Scenario, 'Moving'), :);
         
         % Separate scenarios for tag errors
-        staticTagErrors = tagErrors(strcmp(tagErrors.Scenario, 'Static'), :);
-        movingTagErrors = tagErrors(strcmp(tagErrors.Scenario, 'Moving'), :);
+        % staticTagErrors = tagErrors(strcmp(tagErrors.Scenario, 'Static'), :);
+        % movingTagErrors = tagErrors(strcmp(tagErrors.Scenario, 'Moving'), :);
         
         % Analyze each scenario and subgroup
         analyzeSubgroup(staticAnchorErrors, estimators, 'Static', 'Anchor');
         analyzeSubgroup(movingAnchorErrors, estimators, 'Moving', 'Anchor');
-        analyzeSubgroup(staticTagErrors, estimators, 'Static', 'Tag');
-        analyzeSubgroup(movingTagErrors, estimators, 'Moving', 'Tag');
+        % analyzeSubgroup(staticTagErrors, estimators, 'Static', 'Tag');
+        % analyzeSubgroup(movingTagErrors, estimators, 'Moving', 'Tag');
     end
 
     function analyzeSubgroup(errorsTable, estimators, scenario, errorType)
@@ -295,7 +298,7 @@ function evaluate()
         
         % Plot RMSE boxplots for each anchor
         figure('Position', get(0, 'Screensize'));
-        boxplot(rmseData', 'Labels', arrayfun(@(x) sprintf('Anchor %d', x), 1:numAnchors, 'UniformOutput', false));
+        boxplot(mean(rmseData, 3)', 'Labels', arrayfun(@(x) sprintf('Anchor %d', x), 1:numAnchors, 'UniformOutput', false));
         title(sprintf('%s - %s: RMSE Boxplot', estimator, scenario));
         xlabel('Anchor');
         ylabel('RMSE');
@@ -304,5 +307,53 @@ function evaluate()
 
         pause(0.1);
         close all;
+    end
+
+    function trainDDN()
+        [noisyDistances, cleanOriginalDistances, trueAnchors] = generateData(numTopologies * numSamples * 2, numAnchors, distanceNoise); % Adjust the number of samples and anchors
+
+        % Train denoising autoencoder
+        ae = trainDenoisingAutoencoder(noisyDistances, cleanOriginalDistances);
+        trainDataCleaned = ae(noisyDistances');
+      
+        noisyDistancesMatrix = reshapeToSquare(noisyDistances);
+        trainDataCleanedMatrix = reshapeToSquare(trainDataCleaned);
+        cleanOriginalDistances = reshapeToSquare(cleanOriginalDistances);
+
+        % Calculate residuals
+        residualsMatrix = abs(trainDataCleanedMatrix - cleanOriginalDistances);
+
+        % Create the figure and subplots
+        figure;
+        
+        % Plot Noisy Distances
+        subplot(2, 2, 1);
+        heatmap(noisyDistancesMatrix, 'Title', 'Noisy Distances', 'XLabel', 'i', 'YLabel', 'j');
+        colorbar;
+        colormap('jet'); % Color map that goes from blue to red
+        
+        % Plot Original Distances
+        subplot(2, 2, 2);
+        heatmap(cleanOriginalDistances, 'Title', 'Original Distances', 'XLabel', 'i', 'YLabel', 'j');
+        colorbar;
+        colormap('jet'); % Color map that goes from blue to red
+        
+        % Plot Cleaned Distances
+        subplot(2, 2, 3);
+        heatmap(trainDataCleanedMatrix, 'Title', 'Cleaned Distances', 'XLabel', 'i', 'YLabel', 'j');
+        colorbar;
+        colormap('jet'); % Color map that goes from blue to red
+        
+        % Plot Residuals
+        subplot(2, 2, 4);
+        heatmap(residualsMatrix, 'Title', 'Residuals', 'XLabel', 'i', 'YLabel', 'j');
+        colorbar;
+        colormap('hot'); % Color map that goes from black to red through yellow and orange
+        
+        % Adjust subplot layout
+        sgtitle('Distance Matrices and Residuals');
+
+        % Train regression network
+        regressionNetwork = trainRegressionNetwork(noisyDistances, trueAnchors, numAnchors);
     end
 end
