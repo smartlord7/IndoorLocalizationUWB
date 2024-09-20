@@ -214,18 +214,7 @@ function evaluate()
 
         results = multcompare(stats, 'CType', 'bonferroni', 'Display', 'off');
         
-        % Create a symmetrical matrix for p-values
-        numEstimators = length(estimators);
-        pValuesMatrix = NaN(numEstimators, numEstimators);
-        
-        % Fill in the p-values
-        for i = 1:size(results, 1)
-            idx1 = results(i, 1);
-            idx2 = results(i, 2);
-            pValue = results(i, 6);
-            pValuesMatrix(idx1, idx2) = pValue;
-            pValuesMatrix(idx2, idx1) = pValue;
-        end
+        pValuesMatrix = buildPValueMatrix(estimators, results);
         
         % Plot heatmap of p-values
         figure('Position', get(0, 'Screensize'));
@@ -253,11 +242,6 @@ function evaluate()
         
         fprintf('Ranking for %s Calibration in %s Scenario:\n', errorType, scenario);
         disp(grouped.Estimator(rank));
-    end
-    
-    % Function to generate a random path
-    function path = generateRandomPath(steps, mx)
-        path = cumsum(randn(steps, 3), 1) + [mx, mx, mx];
     end
     
     % Function to plot and save results
