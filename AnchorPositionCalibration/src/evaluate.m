@@ -204,19 +204,12 @@ function evaluate()
         meanErrors = varfun(@mean, meanErrors, 'InputVariables', 'mean_Error', ...
             'GroupingVariables', {'Estimator', 'Sample'});
         
-        % Normality test (e.g., Shapiro-Wilk)
-        normalityTestResults = arrayfun(@(x) lillietest(meanErrors.mean_mean_Error(strcmp(meanErrors.Estimator, x))), estimators);
-
-        % Constant variance test (e.g., Bartlett's test)
-        [varTestResults, varTestP] = vartestn(meanErrors.mean_mean_Error, 'TestType', 'Bartlett', 'Display', 'off');
-        
-        % Perform parametric tests if normality and equal variance hold
-        if all(normalityTestResults) && all(varTestResults)
+        if checkParametricAssumptions(estimators, meanErrors)
             % ANOVA and multiple comparisons
-            [pVal, tbl, stats] = anova1(meanErrors.mean_mean_Error, meanErrors.Estimator, 'off');
+            [~, ~, stats] = anova1(meanErrors.mean_mean_Error, meanErrors.Estimator, 'off');
         else
             % Kruskal-Wallis and multiple comparisons
-            [pVal, tbl, stats] = kruskalwallis(meanErrors.mean_mean_Error, meanErrors.Estimator, 'off');
+            [~, ~, stats] = kruskalwallis(meanErrors.mean_mean_Error, meanErrors.Estimator, 'off');
         end
 
         results = multcompare(stats, 'CType', 'bonferroni', 'Display', 'off');
@@ -250,6 +243,8 @@ function evaluate()
         xlabel('Estimator');
         ylabel('Mean Error');
         saveas(gcf, sprintf('../img/Mean_%s_Error_BoxPlot_%s.png', errorType, scenario));
+
+        confidenceAnalysis(estimators, meanErrors, errorType, scenario);
         
         grouped = sortrows(varfun(@mean, meanErrors, 'InputVariables', 'mean_mean_Error', ...
             'GroupingVariables', {'Estimator'}));
