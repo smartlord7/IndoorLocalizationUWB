@@ -19,7 +19,7 @@ function [noisyDistances, cleanDistances, trueAnchors, tagPositions] = generateD
 
     % Initialize data matrices
     numDimensions = 3; % x, y, z
-    noisyDistances = zeros(totalSamples, numAnchors); % Noisy distances
+    noisyDistances = zeros(totalSamples, numAnchors + 1); % Noisy distances
     cleanDistances = zeros(totalSamples, numAnchors); % Clean distances
     trueAnchors = zeros(totalSamples, numAnchors * numDimensions); % True anchor positions
     tagPositions = zeros(totalSamples, numDimensions); % Tag positions
@@ -48,7 +48,8 @@ function [noisyDistances, cleanDistances, trueAnchors, tagPositions] = generateD
             noisyDistancesSample = distances + noise;
 
             % Store data
-            noisyDistances(sampleIndex, :) = noisyDistancesSample';
+            noisyDistances(sampleIndex, 1:numAnchors) = noisyDistancesSample';
+            noisyDistances(sampleIndex, numAnchors + 1) = noiseStdDev;
             cleanDistances(sampleIndex, :) = distances';
             trueAnchors(sampleIndex, :) = anchors(:)'; % Flattened true anchor positions
             tagPositions(sampleIndex, :) = tagPos; % Store tag position

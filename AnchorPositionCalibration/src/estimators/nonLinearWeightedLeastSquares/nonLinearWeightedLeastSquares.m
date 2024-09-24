@@ -13,7 +13,7 @@ function estimatedAnchors = nonLinearWeightedLeastSquares(distances_noisy, initi
     initialGuess = initialAnchors(:);
     
     % Use fminunc for non-linear optimization
-    options = optimoptions('fminunc', 'Algorithm', 'quasi-newton', 'Display', 'iter', 'GradObj', 'on');
+    options = optimoptions('lsqnonlin', 'Algorithm', 'levenberg-marquardt', 'Display', 'final-detailed', 'MaxIterations', 1000000);
     [estimatedAnchorsVec, ~] = fminunc(costFunction, initialGuess, options);
     
     % Reshape the optimized vector back to matrix form
