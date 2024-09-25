@@ -9,6 +9,7 @@ function evaluate()
     defaultDistanceNoise = 0.3;
     defaultToaNoise = 2e-9;
     defaultNumTopologies = 30;
+    rng(0);
 
     % UI Controls
     uicontrol('Style', 'text', 'Position', [10, 550, 150, 20], 'String', 'Number of Anchors:');
@@ -55,15 +56,11 @@ function evaluate()
         distanceNoise = str2double(distanceNoiseEdit.String);
         toaNoise = str2double(toaNoiseEdit.String);
         numTopologies = str2double(numTopologiesEdit.String);
-        mx = 40;
+        mx = [10 10 10];
 
-        lb = repmat([0 0 0], numAnchors, 1); % Lower bounds
-        ub = repmat([mx mx mx], numAnchors, 1);  % Upper bounds
-        sz = size(lb);
-        bounds = zeros(2, sz(1), sz(2));
-        bounds(1, :, :) = lb;
-        bounds(2, :, :) = ub;
+        bounds = buildBounds(mx, numAnchors);
 
+        %trainDDN(numAnchors);
         
         % Generate random tag positions along a path
         tagPositionsMoving = generateRandomPath(numSamples, mx);
@@ -78,16 +75,21 @@ function evaluate()
         fprintf(csvFileAnchor, 'Estimator,Scenario,Topology,Anchor,Sample,Error\n');
         fprintf(csvFileTag, 'Estimator,Scenario,Topology,Sample,Error\n');
 
+        % Generate true anchor positions
+        trueAnchors = generateAnchors(mx, numAnchors);
+        % Add Gaussian noise to anchor positions for initial guess
+        initialAnchors = trueAnchors + anchorNoise * randn(size(trueAnchors));
+
         % Loop over each selected estimator
         for i = 1:length(selectedEstimators)
             estName = selectedEstimators{i};
             
             % Scenario 1: Static Tag
-            rmseStatic = simulateCalibration(numTopologies, mx, anchorNoise, tagPositionsStatic, estName, numAnchors, distanceNoise, toaNoise, numSamples, bounds);
+            rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds);
             plotAndSaveResults(rmseStatic, estName, 'Static');
 
             % Scenario 2: Moving Tag
-            rmseMoving = simulateCalibration(numTopologies, mx, anchorNoise, tagPositionsMoving, estName, numAnchors, distanceNoise, toaNoise, numSamples, bounds);
+            rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds);
             plotAndSaveResults(rmseMoving, estName, 'Moving');
         
             % Save errors to CSV
@@ -104,54 +106,47 @@ function evaluate()
     end
 
     % Function to simulate calibration
-    function rmse = simulateCalibration(numTopologies, mx, anchorNoise, tagPositions, estimator, numAnchors, distanceNoise, toaNoise, numSamples, bounds)
+    function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds)
         % Initialize matrix to accumulate RMSE
         rmse = zeros(numAnchors + 1, numSamples, numTopologies);
 
-        for topology=1:numTopologies
-            % Generate true anchor positions
-            trueAnchors = mx * rand(numAnchors, 3); 
-            % Add Gaussian noise to anchor positions for initial guess
-            initialAnchors = trueAnchors + anchorNoise * randn(size(trueAnchors));
-    
-            % Perform calibration and compute RMSE
-            for sample = 1:numSamples
-                % Current tag position
-                currentTagPos = tagPositions(sample, :);
-                
-                % Simulate distances with noise for the current tag position
-                trueDistances = sqrt(sum((trueAnchors - currentTagPos).^2, 2));
-                noisyDistances = trueDistances + randn(size(trueDistances)) * distanceNoise;
-                estimatedAnchors = [];
+        % Perform calibration and compute RMSE
+        for sample = 1:numSamples
+            % Current tag position
+            currentTagPos = tagPositions(sample, :);
+            
+            % Simulate distances with noise for the current tag position
+            trueDistances = sqrt(sum((trueAnchors - currentTagPos).^2, 2));
+            noisyDistances = trueDistances + randn(size(trueDistances)) * distanceNoise;
+            estimatedAnchors = [];
 
-                estimatedTagPos = trilateration(trueAnchors, trueAnchors, currentTagPos, 1000, toaNoise, distanceNoise);
-                rmse(numAnchors + 1, sample, topology) = sqrt(mean(((estimatedTagPos - currentTagPos).^2), 2));
-                
-                % Estimate anchor positions based on the noisy distances
-                switch estimator
-                    case 'NLS'
-                        estimatedAnchors = nonlinearLeastSquares(noisyDistances, initialAnchors, estimatedTagPos);
-                    case 'MLE'
-                        estimatedAnchors = maximumLikelihoodEstimation(noisyDistances, initialAnchors, estimatedTagPos);
-                    case 'EKF'
-                        estimatedAnchors = extendedKalmanFilter(noisyDistances, distanceNoise * distanceNoise, initialAnchors, estimatedTagPos);
-                    case 'LLS'
-                        estimatedAnchors = linearLeastSquares(noisyDistances, initialAnchors, estimatedTagPos);
-                    case 'WLS'
-                        estimatedAnchors = nonLinearWeightedLeastSquares(noisyDistances, initialAnchors, estimatedTagPos);
-                    case 'IR'
-                        estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, estimatedTagPos);
-                    case 'GA'
-                        estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, estimatedTagPos, bounds);
-                    case 'DDN'
-                        %estimatedAnchors = combinedModel(noisyDistances, denoisingAutoencoder, regressionNetwork);
-                    case 'C'
-                        estimatedAnchors = control(initialAnchors);
-                end
-                
-                % Compute RMSE for anchors
-                rmse(1:numAnchors, sample, topology) = sqrt(mean(((estimatedAnchors - trueAnchors).^2), 2));
+            estimatedTagPos = trilateration(trueAnchors, trueAnchors, currentTagPos, 1000, toaNoise, distanceNoise);
+            rmse(numAnchors + 1, sample, 1) = sqrt(mean(((estimatedTagPos - currentTagPos).^2), 2));
+            
+            % Estimate anchor positions based on the noisy distances
+            switch estimator
+                case 'NLS'
+                    estimatedAnchors = nonlinearLeastSquares(noisyDistances, initialAnchors, estimatedTagPos, bounds);
+                case 'MLE'
+                    estimatedAnchors = maximumLikelihoodEstimation(noisyDistances, initialAnchors, estimatedTagPos);
+                case 'EKF'
+                    estimatedAnchors = extendedKalmanFilter(noisyDistances, anchorNoise, distanceNoise, initialAnchors, estimatedTagPos);
+                case 'LLS'
+                    estimatedAnchors = linearLeastSquares(noisyDistances, initialAnchors, estimatedTagPos);
+                case 'WLS'
+                    estimatedAnchors = nonLinearWeightedLeastSquares(noisyDistances, initialAnchors, estimatedTagPos);
+                case 'IR'
+                    estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, estimatedTagPos);
+                case 'GA'
+                    estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, estimatedTagPos, bounds);
+                %case 'DDN'
+                    %estimatedAnchors = combinedModel(noisyDistances, denoisingAutoencoder, regressionNetwork);
+                case 'C'
+                    estimatedAnchors = control(initialAnchors);
             end
+            
+            % Compute RMSE for anchors
+            rmse(1:numAnchors, sample, 1) = sqrt(mean(((estimatedAnchors - trueAnchors).^2), 2));
         end
     end
 
