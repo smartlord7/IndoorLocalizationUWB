@@ -55,6 +55,7 @@ function confidenceAnalysis(estimators, meanErrors, errorType, scenario)
     title(sprintf('Heatmap of Confidence Interval Intersections for %s %s Estimators', scenario, errorType));
     xlabel('Estimator');
     ylabel('Estimator');
+    set(gca, 'FontSize', 12); % Increase font size for axes
     saveas(gcf, sprintf('../img/%s_%s_Estimator_ConfidenceInterval_Heatmap.png', scenario, errorType));
     
     % Display the confidence intervals and rankings

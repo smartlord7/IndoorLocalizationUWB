@@ -1,15 +1,17 @@
 function evaluate()
     % Create a figure for UI
     fig = figure('Name', 'Anchor Calibration Simulation', 'Position', [100, 100, 800, 600]);
+    disp('UI Figure created.');
 
     % Default Parameters
     defaultNumAnchors = 6;
-    defaultNumSamples = 1000;
-    defaultAnchorNoise = 2;
-    defaultDistanceNoise = 0.3;
-    defaultToaNoise = 2e-9;
-    defaultNumTopologies = 30;
+    defaultNumSamples = 3000;
+    defaultAnchorNoise = 1;
+    defaultDistanceNoise = 0.1;
+    defaultToaNoise = 1e-10;
+    defaultNumTopologies = 1;
     rng(0);
+    disp('Default parameters set.');
 
     % UI Controls
     uicontrol('Style', 'text', 'Position', [10, 550, 150, 20], 'String', 'Number of Anchors:');
@@ -42,6 +44,7 @@ function evaluate()
     % Function to update selected estimators
     function updateSelection(~, ~)
         selectedEstimators = estimatorListBox.String(estimatorListBox.Value);
+        disp('Updated selected estimators.');
     end
 
     % Run Simulation button
@@ -50,6 +53,7 @@ function evaluate()
 
     % Function to Run Simulation
     function runSimulation()
+        disp('Running simulation...');
         numAnchors = str2double(numAnchorsEdit.String);
         numSamples = str2double(numSamplesEdit.String);
         anchorNoise = str2double(anchorNoiseEdit.String);
@@ -59,59 +63,73 @@ function evaluate()
         mx = [10 10 10];
 
         bounds = buildBounds(mx, numAnchors);
+        disp('Bounds built for anchor positions.');
 
-        %trainDDN(numAnchors);
-        
         % Generate random tag positions along a path
         tagPositionsMoving = generateRandomPath(numSamples, mx);
+        disp('Generated random path for moving tag.');
+
         % Static tag at a fixed position
         tagPositionsStatic = repmat([10, 10, 10], numSamples, 1);
+        disp('Static tag positions generated.');
 
         % Prepare CSV files to store results
         csvFileAnchor = fopen('../data/anchor_errors.csv', 'w');
         csvFileTag = fopen('../data/tag_errors.csv', 'w');
-        
+        disp('CSV files prepared for results.');
+
         % Headers
         fprintf(csvFileAnchor, 'Estimator,Scenario,Topology,Anchor,Sample,Error\n');
         fprintf(csvFileTag, 'Estimator,Scenario,Topology,Sample,Error\n');
 
         % Generate true anchor positions
         trueAnchors = generateAnchors(mx, numAnchors);
+        disp('True anchor positions generated.');
+
         % Add Gaussian noise to anchor positions for initial guess
         initialAnchors = trueAnchors + anchorNoise * randn(size(trueAnchors));
+        disp('Initial anchor positions with noise generated.');
 
         % Loop over each selected estimator
         for i = 1:length(selectedEstimators)
             estName = selectedEstimators{i};
-            
+            disp(['Simulating for estimator: ', estName]);
+
             % Scenario 1: Static Tag
             rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds);
             plotAndSaveResults(rmseStatic, estName, 'Static');
+            disp(['Static scenario RMSE calculated for estimator: ', estName]);
 
             % Scenario 2: Moving Tag
             rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds);
             plotAndSaveResults(rmseMoving, estName, 'Moving');
-        
+            disp(['Moving scenario RMSE calculated for estimator: ', estName]);
+
             % Save errors to CSV
             saveErrorsToCSV(rmseStatic, estName, 'Static', csvFileAnchor, csvFileTag);
             saveErrorsToCSV(rmseMoving, estName, 'Moving', csvFileAnchor, csvFileTag);
+            disp(['Errors saved to CSV for estimator: ', estName]);
         end
         
         % Close CSV files
         fclose(csvFileAnchor);
         fclose(csvFileTag);
-        
+        disp('CSV files closed.');
+
         % Compute statistics and perform tests
         analyzeResults('../data/anchor_errors.csv', '../data/tag_errors.csv', selectedEstimators);
+        disp('Analysis of results completed.');
     end
 
     % Function to simulate calibration
     function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds)
         % Initialize matrix to accumulate RMSE
         rmse = zeros(numAnchors + 1, numSamples, numTopologies);
+        disp(['Simulating calibration for estimator: ', estimator]);
 
         % Perform calibration and compute RMSE
         for sample = 1:numSamples
+            disp(['Processing sample: ', num2str(sample)]);
             % Current tag position
             currentTagPos = tagPositions(sample, :);
             
@@ -139,15 +157,18 @@ function evaluate()
                     estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, estimatedTagPos);
                 case 'GA'
                     estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, estimatedTagPos, bounds);
-                %case 'DDN'
-                    %estimatedAnchors = combinedModel(noisyDistances, denoisingAutoencoder, regressionNetwork);
                 case 'C'
                     estimatedAnchors = control(initialAnchors);
+                otherwise
+                    error('Unknown estimator: %s', estimator);
             end
             
-            % Compute RMSE for anchors
+            % Compute RMSE for the current topology
             rmse(1:numAnchors, sample, 1) = sqrt(mean(((estimatedAnchors - trueAnchors).^2), 2));
         end
+
+        % Compute average RMSE over all samples and topologies
+        disp(['RMSE calculated for estimator: ', estimator]);
     end
 
    % Function to save errors to CSV
@@ -217,6 +238,7 @@ function evaluate()
         title(sprintf('Heatmap of P-values for %s %s Estimators', scenario, errorType));
         xlabel('Estimator');
         ylabel('Estimator');
+        set(gca, 'FontSize', 12); % Increase font size for axes
         saveas(gcf, sprintf('../img/%s_%s_Estimator_PValue_Heatmap.png', scenario, errorType));      
 
         
@@ -226,6 +248,7 @@ function evaluate()
         title(sprintf('Mean %s Error for Each Estimator (%s Scenario)', errorType, scenario));
         xlabel('Estimator');
         ylabel('Mean Error');
+        set(gca, 'FontSize', 12); % Increase font size for axes
         saveas(gcf, sprintf('../img/Mean_%s_Error_BoxPlot_%s.png', errorType, scenario));
 
         confidenceAnalysis(estimators, meanErrors, errorType, scenario);
@@ -249,9 +272,15 @@ function evaluate()
         for anchor = 1:numAnchors
             subplot(numAnchors, 1, anchor);
             plot(rmseData(anchor, :), 'LineWidth', 1.5); % Each line represents the RMSE of an anchor over samples
-            title(sprintf('Anchor %d - RMSE Evolution', anchor));
+            if anchor == numAnchors
+                t = 'Tag';
+            else
+                t = sprintf('Anchor %d - RMSE Evolution', anchor);
+            end
+            title(t);
             xlabel('Sample');
             ylabel('RMSE');
+            set(gca, 'FontSize', 11); % Increase font size for axes
             grid on;
         end
         sgtitle(sprintf('%s - %s: RMSE Evolution', estimator, scenario)); % Super title for all subplots
@@ -262,9 +291,15 @@ function evaluate()
         for anchor = 1:numAnchors
             subplot(numAnchors, 1, anchor);
             histogram(rmseData(anchor, :), 'Normalization', 'pdf', 'FaceColor', [0.2, 0.6, 0.8]); % Normalized histogram
-            title(sprintf('Anchor %d - RMSE Histogram', anchor));
+            if anchor == numAnchors
+                t = 'Tag';
+            else
+                t = sprintf('Anchor %d - RMSE Evolution', anchor);
+            end
+            title(t);
             xlabel('RMSE');
-            ylabel('Probability Density');
+            ylabel('Occurrences');
+            set(gca, 'FontSize', 11); % Increase font size for axes
             grid on;
         end
         sgtitle(sprintf('%s - %s: RMSE Histogram', estimator, scenario)); % Super title for all subplots
@@ -272,11 +307,14 @@ function evaluate()
         
         % Plot RMSE boxplots for each anchor
         figure('Position', get(0, 'Screensize'));
-        boxplot(mean(rmseData, 3)', 'Labels', arrayfun(@(x) sprintf('Anchor %d', x), 1:numAnchors, 'UniformOutput', false));
+        labels = arrayfun(@(x) sprintf('Anchor %d', x), 1:numAnchors, 'UniformOutput', false);
+        labels{end} = 'Tag'; % Replace the last label with 'Tag'
+        boxplot(mean(rmseData, 3)', 'Labels', labels);
         title(sprintf('%s - %s: RMSE Boxplot', estimator, scenario));
         xlabel('Anchor');
         ylabel('RMSE');
         grid on;
+        set(gca, 'FontSize', 12); % Increase font size for axes
         saveas(gcf, sprintf('../img/%s_%s_RMSE_Boxplot.png', estimator, scenario));
 
         pause(0.1);
@@ -304,24 +342,28 @@ function evaluate()
         subplot(2, 2, 1);
         heatmap(noisyDistancesMatrix, 'Title', 'Noisy Distances', 'XLabel', 'i', 'YLabel', 'j');
         colorbar;
+        set(gca, 'FontSize', 12); % Increase font size for axes
         colormap('jet'); % Color map that goes from blue to red
         
         % Plot Original Distances
         subplot(2, 2, 2);
         heatmap(cleanOriginalDistances, 'Title', 'Original Distances', 'XLabel', 'i', 'YLabel', 'j');
         colorbar;
+        set(gca, 'FontSize', 12); % Increase font size for axes
         colormap('jet'); % Color map that goes from blue to red
         
         % Plot Cleaned Distances
         subplot(2, 2, 3);
         heatmap(trainDataCleanedMatrix, 'Title', 'Cleaned Distances', 'XLabel', 'i', 'YLabel', 'j');
         colorbar;
+        set(gca, 'FontSize', 12); % Increase font size for axes
         colormap('jet'); % Color map that goes from blue to red
         
         % Plot Residuals
         subplot(2, 2, 4);
         heatmap(residualsMatrix, 'Title', 'Residuals', 'XLabel', 'i', 'YLabel', 'j');
         colorbar;
+        set(gca, 'FontSize', 12); % Increase font size for axes
         colormap('hot'); % Color map that goes from black to red through yellow and orange
         
         % Adjust subplot layout

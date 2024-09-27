@@ -5,7 +5,7 @@ function [meta] = trainRegressionNetwork(trainData, trainLabels)
         optimizableVariable('initialNeurons', [10, 100], 'Type', 'integer')  % Initial number of neurons
         optimizableVariable('finalNeurons', [5, 50], 'Type', 'integer')      % Final number of neurons
         optimizableVariable('learningRate', [1e-4, 1e-1], 'Type', 'real')    % Learning rate range
-        optimizableVariable('activationFunction', {'tansig', 'logsig', 'purelin', 'satlin'}) % Activation functions
+        optimizableVariable('activationFunction', {'tansig', 'logsig', 'purelin', 'satlin', 'elliotsig'}) % Activation functions
     ];
 
     % Initialize meta struct to track best network and performance
