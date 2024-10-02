@@ -1,9 +1,12 @@
-function [noisyDistances, cleanDistances, trueAnchors, tagPositions] = generateData(numSamplesPerStd, numAnchors, stdDevs, varargin)
+function [noisyDistances, cleanDistances, noisyAnchors, trueAnchors, tagPositions] = generateData(numSamplesPerStd, numAnchors, stdDevs, anchorPosNoiseStd, varargin)
     % Parameters with default values
     if nargin < 3 || isempty(stdDevs)
-        stdDevs = [0.1, 0.5, 1.0]; % Default standard deviations
+        stdDevs = [0.1, 0.5, 1.0]; % Default distance standard deviations
     end
-    if nargin < 4
+    if nargin < 4 || isempty(anchorPosNoiseStd)
+        anchorPosNoiseStd = 1.0; % Default standard deviation for anchor position noise
+    end
+    if nargin < 5
         xMin = 0; xMax = 10;
         yMin = 0; yMax = 10;
         zMin = 0; zMax = 10;
@@ -22,6 +25,7 @@ function [noisyDistances, cleanDistances, trueAnchors, tagPositions] = generateD
     noisyDistances = zeros(totalSamples, numAnchors + 1); % Noisy distances
     cleanDistances = zeros(totalSamples, numAnchors); % Clean distances
     trueAnchors = zeros(totalSamples, numAnchors * numDimensions); % True anchor positions
+    noisyAnchors = zeros(totalSamples, numAnchors * numDimensions); % Noisy anchor positions (with uncertainty)
     tagPositions = zeros(totalSamples, numDimensions); % Tag positions
 
     % Generate data for each noise level
@@ -35,23 +39,30 @@ function [noisyDistances, cleanDistances, trueAnchors, tagPositions] = generateD
                        rand(numAnchors, 1) * (yMax - yMin) + yMin, ...
                        rand(numAnchors, 1) * (zMax - zMin) + zMin];
 
+            % Introduce noise to the anchor positions to simulate uncertainty
+            noisyAnchorsSample = anchors + randn(numAnchors, numDimensions) * anchorPosNoiseStd;
+
             % Simulate random tag position within [min, max] range for x, y, z
             tagPos = [rand(1) * (xMax - xMin) + xMin, ...
                       rand(1) * (yMax - yMin) + yMin, ...
                       rand(1) * (zMax - zMin) + zMin];
 
-            % Compute true distances
+            % Compute true distances from the true anchor positions to the tag position
             distances = sqrt(sum((anchors - tagPos).^2, 2));
 
-            % Generate noise with the specified std deviation
-            noise = randn(size(distances)) * noiseStdDev;
-            noisyDistancesSample = distances + noise;
+            % Compute noisy distances from noisy anchor positions to the tag position
+            noisyDistancesSample = sqrt(sum((noisyAnchorsSample - tagPos).^2, 2));
+
+            % Generate noise with the specified std deviation and add it to the distances
+            distanceNoise = randn(size(distances)) * noiseStdDev;
+            noisyDistancesSample = noisyDistancesSample + distanceNoise;
 
             % Store data
             noisyDistances(sampleIndex, 1:numAnchors) = noisyDistancesSample';
             noisyDistances(sampleIndex, numAnchors + 1) = noiseStdDev;
             cleanDistances(sampleIndex, :) = distances';
             trueAnchors(sampleIndex, :) = anchors(:)'; % Flattened true anchor positions
+            noisyAnchors(sampleIndex, :) = noisyAnchorsSample(:)'; % Flattened noisy anchor positions
             tagPositions(sampleIndex, :) = tagPos; % Store tag position
 
             sampleIndex = sampleIndex + 1;

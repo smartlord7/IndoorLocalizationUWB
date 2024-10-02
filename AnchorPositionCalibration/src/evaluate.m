@@ -89,19 +89,28 @@ function evaluate()
         % Add Gaussian noise to anchor positions for initial guess
         initialAnchors = trueAnchors + anchorNoise * randn(size(trueAnchors));
         disp('Initial anchor positions with noise generated.');
+        net = {};
 
         % Loop over each selected estimator
         for i = 1:length(selectedEstimators)
             estName = selectedEstimators{i};
             disp(['Simulating for estimator: ', estName]);
 
+            if estName == "DDN"
+                [noisyDistances, cleanDistances, noisyAnchors, realAnchors, tagPositions] = generateData(20000, 6, [0.1, 0,4, 0,7, 1.0, 1.4, 1.8]); % Adjust the number of samples and anchors
+
+                trainData = cat(2, cleanDistances, tagPositions);
+                trainData = cat(2, trainData, noisyAnchors);
+                [ps, net, ~, valPerformance] = trainRegressionNetwork_(100, 50, 3, 'tansig', 0.06333, trainData, realAnchors);
+            end
+
             % Scenario 1: Static Tag
-            rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds);
+            rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds, ps, net);
             plotAndSaveResults(rmseStatic, estName, 'Static');
             disp(['Static scenario RMSE calculated for estimator: ', estName]);
 
             % Scenario 2: Moving Tag
-            rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds);
+            rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds, ps, net);
             plotAndSaveResults(rmseMoving, estName, 'Moving');
             disp(['Moving scenario RMSE calculated for estimator: ', estName]);
 
@@ -122,7 +131,7 @@ function evaluate()
     end
 
     % Function to simulate calibration
-    function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds)
+    function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds, ps, net)
         % Initialize matrix to accumulate RMSE
         rmse = zeros(numAnchors + 1, numSamples, numTopologies);
         disp(['Simulating calibration for estimator: ', estimator]);
@@ -157,6 +166,13 @@ function evaluate()
                     estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, estimatedTagPos);
                 case 'GA'
                     estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, estimatedTagPos, bounds);
+                case 'DDN'                  
+                    testData = cat(2, noisyDistances', estimatedTagPos);
+                    testData = cat(2, testData, reshape(initialAnchors', 1, [])); % Transpose and flatten);
+                    [testData, ps] = mapminmax('apply', testData', ps);
+
+                    estimatedAnchors = net(testData);
+                    estimatedAnchors = reshape(estimatedAnchors, size(initialAnchors, 1), 3);
                 case 'C'
                     estimatedAnchors = control(initialAnchors);
                 otherwise
@@ -372,4 +388,16 @@ function evaluate()
         % Train regression network
         regressionNetwork = trainRegressionNetwork(noisyDistances, trueAnchors, numAnchors);
     end
+end
+
+
+function trainRN()
+        [noisyDistances, cleanDistances, noisyAnchors, trueAnchors, tagPositions] = generateData(20000, 6, [0.1, 0,4, 0,7, 1.0, 1.4, 1.8]); % Adjust the number of samples and anchors
+
+        trainData = cat(2, cleanDistances, tagPositions);
+        trainData = cat(2, trainData, noisyAnchors);
+
+        % Train regression network
+        regressionNetwork = trainRegressionNetwork(trainData, trueAnchors);
+
 end
