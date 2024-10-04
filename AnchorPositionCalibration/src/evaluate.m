@@ -97,7 +97,7 @@ function evaluate()
             disp(['Simulating for estimator: ', estName]);
 
             if estName == "DDN"
-                [noisyDistances, cleanDistances, noisyAnchors, realAnchors, tagPositions] = generateData(20000, 6, [0.1, 0,4, 0,7, 1.0, 1.4, 1.8]); % Adjust the number of samples and anchors
+                [noisyDistances, cleanDistances, noisyAnchors, realAnchors, tagPositions] = generateData(1000, 1000, 6, [0.1], 1.0, true); % Adjust the number of samples and anchors
 
                 trainData = cat(2, cleanDistances, tagPositions);
                 trainData = cat(2, trainData, noisyAnchors);

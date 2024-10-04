@@ -1,0 +1,6 @@
+function anchors = generateRandomAnchors(numAnchors, xRange, yRange, zRange)
+    % Generates anchors randomly positioned within the specified range.
+    anchors = [rand(numAnchors, 1) * (xRange(2) - xRange(1)) + xRange(1), ...
+               rand(numAnchors, 1) * (yRange(2) - yRange(1)) + yRange(1), ...
+               rand(numAnchors, 1) * (zRange(2) - zRange(1)) + zRange(1)];
+end
