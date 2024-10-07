@@ -30,7 +30,7 @@ function [outputs, activations] = forward_pass(net, X)
 end
 
 % Custom loss: Distance error with regularization
-function loss = compute_loss(predicted_anchors, real_distances, real_tag_position, n_anchors, initial_anchors, lambda)
+function loss = compute_loss(predicted_anchors, real_distances, real_tag_position, n_anchors, initial_anchors, lambda, stds)
     predicted_anchors = reshape(predicted_anchors, [n_anchors, 3]);
     
     % Compute predicted distances from each anchor to the tag
@@ -40,7 +40,7 @@ function loss = compute_loss(predicted_anchors, real_distances, real_tag_positio
     distance_loss = sum((predicted_distances - real_distances).^2); % MSE of distance error
     
     % Regularization term: Penalize deviation from initial anchors
-    regularization_term = sum(sum((predicted_anchors - initial_anchors).^2)); % Squared error of anchor positions
+    regularization_term = sum(sum(((predicted_anchors - initial_anchors).^2) ./ (stds.^2))); % Scaled by std deviation
     
     % Total loss is distance error + regularization term (with a weighting factor lambda)
     loss = distance_loss + lambda * regularization_term;
@@ -94,7 +94,7 @@ function grads = backward_pass(net, X, real_distances, real_tag_position, n_anch
 end
 
 % SCG Optimization (placeholder using simple gradient descent for now)
-function net = scg_optimization(net, X, real_distances, real_tag_position, n_anchors, max_iters, initialAnchors, lambda)
+function net = scg_optimization(net, X, real_distances, real_tag_position, n_anchors, max_iters, initialAnchors, lambda, lr, stds)
     tol = 1e-6;     % Tolerance for convergence
 
     for iter = 1:max_iters
@@ -102,17 +102,16 @@ function net = scg_optimization(net, X, real_distances, real_tag_position, n_anc
         [outputs, activations] = forward_pass(net, X);
         
         % Compute loss
-        loss = compute_loss(outputs, real_distances, real_tag_position, n_anchors, initialAnchors, lambda);
+        loss = compute_loss(outputs, real_distances, real_tag_position, n_anchors, initialAnchors, lambda, stds);
         disp(['Iteration ', num2str(iter), ' Loss: ', num2str(loss)]);
         
         % Compute gradients via backpropagation
         grads = backward_pass(net, X, real_distances, real_tag_position, n_anchors, activations, initialAnchors, lambda);
         
         % Update weights and biases (gradient descent for now)
-        learning_rate = 1e-5;
         for i = 1:length(net.layers)
-            net.layers{i}.W = net.layers{i}.W - learning_rate * grads{i}.dW;
-            net.layers{i}.b = net.layers{i}.b - learning_rate * grads{i}.db;
+            net.layers{i}.W = net.layers{i}.W - lr * grads{i}.dW;
+            net.layers{i}.b = net.layers{i}.b - lr * grads{i}.db;
         end
         
         % Check for convergence
@@ -123,8 +122,10 @@ function net = scg_optimization(net, X, real_distances, real_tag_position, n_anc
 end
 
 % Problem setup
+rng(0);
 n_anchors = 4;
 std = 1; % Standard deviation of the Gaussian noise
+stds = std * ones(n_anchors, 3);  % Uncertainties have the same std deviation
 
 % Generate the true anchor positions
 real_anchors = rand(n_anchors, 3) * 10;
@@ -145,7 +146,8 @@ net = initialize_network(layer_sizes);
 % Train the network using SCG optimization
 max_iters = 1000000;
 lambda = 0.005;
-net = scg_optimization(net, initial_anchors(:), real_distances, real_tag_position, n_anchors, max_iters, initial_anchors, lambda);
+lr = 1e-5;
+net = scg_optimization(net, initial_anchors(:), real_distances, real_tag_position, n_anchors, max_iters, initial_anchors, lambda, lr, stds);
 
 % Final estimated anchor positions
 [final_outputs, ~] = forward_pass(net, initial_anchors(:));
