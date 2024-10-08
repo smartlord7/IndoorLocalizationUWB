@@ -94,9 +94,22 @@ function grads = backward_pass(net, X, real_distances, real_tag_position, n_anch
 end
 
 % SCG Optimization (placeholder using simple gradient descent for now)
-function net = scg_optimization(net, X, real_distances, real_tag_position, n_anchors, max_iters, initialAnchors, lambda, lr, stds)
+function [net, loss_history] = gd_optimization(net, X, real_distances, real_tag_position, n_anchors, max_iters, initialAnchors, lambda, lr, stds, plot_loss)
     tol = 1e-6;     % Tolerance for convergence
+    loss_history = zeros(max_iters, 1);  % Preallocate array for loss values
 
+    % Initialize the figure for interactive plotting
+    if plot_loss == true
+        figure;
+        h = plot(NaN, NaN, 'LineWidth', 2);  % Empty plot initialized
+        xlabel('Epoch');
+        ylabel('Loss');
+        title('Loss over Epochs');
+        grid on;
+        hold on;  % Keep updating the same plot
+    end
+    
+    % Main optimization loop
     for iter = 1:max_iters
         % Forward pass
         [outputs, activations] = forward_pass(net, X);
@@ -105,10 +118,19 @@ function net = scg_optimization(net, X, real_distances, real_tag_position, n_anc
         loss = compute_loss(outputs, real_distances, real_tag_position, n_anchors, initialAnchors, lambda, stds);
         disp(['Iteration ', num2str(iter), ' Loss: ', num2str(loss)]);
         
+        % Store the loss for this iteration
+        loss_history(iter) = loss;
+        
+        if plot_loss == true
+            % Update the plot interactively
+            set(h, 'XData', 1:iter, 'YData', loss_history(1:iter));  % Update data
+            drawnow;  % Force MATLAB to update the plot immediately
+        end
+        
         % Compute gradients via backpropagation
         grads = backward_pass(net, X, real_distances, real_tag_position, n_anchors, activations, initialAnchors, lambda);
         
-        % Update weights and biases (gradient descent for now)
+        % Update weights and biases (gradient descent)
         for i = 1:length(net.layers)
             net.layers{i}.W = net.layers{i}.W - lr * grads{i}.dW;
             net.layers{i}.b = net.layers{i}.b - lr * grads{i}.db;
@@ -116,14 +138,48 @@ function net = scg_optimization(net, X, real_distances, real_tag_position, n_anc
         
         % Check for convergence
         if loss < tol
+            disp('Convergence reached, stopping optimization.');
+            loss_history = loss_history(1:iter);  % Trim loss history up to the current iteration
             break;
         end
     end
+    
+    % Trim loss history in case we converged early
+    if iter < max_iters
+        loss_history = loss_history(1:iter);
+    end
 end
+
+function error_sum = sum_absolute_errors(matrix1, matrix2)
+    % Check if the input matrices have the same size
+    if ~isequal(size(matrix1), size(matrix2))
+        error('Input matrices must have the same size.');
+    end
+    
+    % Compute the absolute differences between the two matrices
+    abs_diff = abs(matrix1 - matrix2);
+    
+    % Sum all the absolute differences
+    error_sum = sum(abs_diff(:));
+end
+
+function rmse = root_mean_squared_error(matrix1, matrix2)
+    % Check if the input matrices have the same size
+    if ~isequal(size(matrix1), size(matrix2))
+        error('Input matrices must have the same size.');
+    end
+    
+    % Compute the squared differences between the two matrices
+    squared_diff = (matrix1 - matrix2) .^ 2;
+    
+    % Calculate the mean of the squared differences
+    rmse = sqrt(mean(squared_diff(:)));
+end
+
 
 % Problem setup
 rng(0);
-n_anchors = 4;
+n_anchors = 8;
 std = 1; % Standard deviation of the Gaussian noise
 stds = std * ones(n_anchors, 3);  % Uncertainties have the same std deviation
 
@@ -140,17 +196,19 @@ real_tag_position = [5, 5, 5];
 real_distances = sqrt(sum((real_anchors - real_tag_position).^2, 2));
 % Network initialization (input, hidden layers, output)
 
-layer_sizes = [3 * n_anchors, 20, 20, 3 * n_anchors];  % Input, hidden1, hidden2, output
+layer_sizes = [3 * n_anchors + 3, 50, 50, 3 * n_anchors];  % Input, hidden1, hidden2, output
 net = initialize_network(layer_sizes);
 
 % Train the network using SCG optimization
-max_iters = 1000000;
-lambda = 0.005;
-lr = 1e-5;
-net = scg_optimization(net, initial_anchors(:), real_distances, real_tag_position, n_anchors, max_iters, initial_anchors, lambda, lr, stds);
+max_iters = 50000;
+lambda = 0.0025;
+lr = 1e-4;
+input = initial_anchors(:);
+input = cat(1, input, real_tag_position');
+net = gd_optimization(net, input, real_distances, real_tag_position, n_anchors, max_iters, initial_anchors, lambda, lr, stds, false);
 
 % Final estimated anchor positions
-[final_outputs, ~] = forward_pass(net, initial_anchors(:));
+[final_outputs, ~] = forward_pass(net, input);
 final_anchors = reshape(final_outputs, [n_anchors, 3]);
 
 disp('Initial anchor positions:');
@@ -163,4 +221,15 @@ disp('Real anchor positions:');
 disp(real_anchors);
 
 disp('Final Loss:')
-disp(compute_loss(final_anchors, real_distances, real_tag_position, n_anchors, initial_anchors, lambda))
+disp(compute_loss(final_anchors, real_distances, real_tag_position, n_anchors, initial_anchors, 0, stds))
+
+disp('Control Loss:')
+disp(compute_loss(initial_anchors, real_distances, real_tag_position, n_anchors, initial_anchors, 0, stds))
+
+disp('Final error')
+disp(root_mean_squared_error(final_anchors, real_anchors))
+
+disp('Control error')
+disp(root_mean_squared_error(initial_anchors, real_anchors))
+
+
