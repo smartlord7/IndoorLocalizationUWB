@@ -38,7 +38,7 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
         
         % Compute loss
         loss = compute_loss(outputs, real_distances, real_tag_position, n_anchors, initial_anchors, lambda, stds, delta);
-        disp(['Iteration ', num2str(iter), ' Loss: ', num2str(loss)]);
+        %disp(['Iteration ', num2str(iter), ' Loss: ', num2str(loss)]);
         
         % Store the loss for this iteration
         loss_history(iter) = loss;
@@ -53,7 +53,7 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
         if iter > stagnation_window
             loss_diff = abs(loss_history(iter) - loss_history(iter - stagnation_window));
             if loss_diff < stagnation_threshold
-                disp('Loss stagnation detected. Applying random perturbations to weights and biases.');
+                %disp('Loss stagnation detected. Applying random perturbations to weights and biases.');
 
                 % Apply random perturbation to the weights and biases
                 for i = 1:length(net.layers)
@@ -87,7 +87,7 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
         
         % Check for convergence
         if loss < tol
-            disp('Convergence reached, stopping optimization.');
+           % disp('Convergence reached, stopping optimization.');
             loss_history = loss_history(1:iter);  % Trim loss history up to the current iteration
             break;
         end
