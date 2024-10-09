@@ -168,3 +168,5 @@ cython_debug/
 *.asv
 
 AnchorPositionCalibration/img/
+
+AnchorPositionCalibration/out/

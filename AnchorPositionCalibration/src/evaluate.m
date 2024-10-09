@@ -97,20 +97,20 @@ function evaluate()
             disp(['Simulating for estimator: ', estName]);
 
             if estName == "DDN"
-                [noisyDistances, cleanDistances, noisyAnchors, realAnchors, tagPositions] = generateData(1000, 1000, 6, [0.1], 1.0, true); % Adjust the number of samples and anchors
+                %[noisyDistances, cleanDistances, noisyAnchors, realAnchors, tagPositions] = generateData(1000, 1000, 6, [0.1], 1.0, true); % Adjust the number of samples and anchors
 
-                trainData = cat(2, cleanDistances, tagPositions);
-                trainData = cat(2, trainData, noisyAnchors);
-                [ps, net, ~, valPerformance] = trainRegressionNetwork_(100, 50, 3, 'tansig', 0.06333, trainData, realAnchors);
+                %trainData = cat(2, cleanDistances, tagPositions);
+                %trainData = cat(2, trainData, noisyAnchors);
+                %[ps, net, ~, valPerformance] = trainRegressionNetwork_(100, 50, 3, 'tansig', 0.06333, trainData, realAnchors);
             end
 
             % Scenario 1: Static Tag
-            rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds, ps, net);
+            rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds);
             plotAndSaveResults(rmseStatic, estName, 'Static');
             disp(['Static scenario RMSE calculated for estimator: ', estName]);
 
             % Scenario 2: Moving Tag
-            rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds, ps, net);
+            rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds);
             plotAndSaveResults(rmseMoving, estName, 'Moving');
             disp(['Moving scenario RMSE calculated for estimator: ', estName]);
 
@@ -131,7 +131,7 @@ function evaluate()
     end
 
     % Function to simulate calibration
-    function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds, ps, net)
+    function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds)
         % Initialize matrix to accumulate RMSE
         rmse = zeros(numAnchors + 1, numSamples, numTopologies);
         disp(['Simulating calibration for estimator: ', estimator]);
@@ -167,12 +167,13 @@ function evaluate()
                 case 'GA'
                     estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, estimatedTagPos, bounds);
                 case 'DDN'                  
-                    testData = cat(2, noisyDistances', estimatedTagPos);
-                    testData = cat(2, testData, reshape(initialAnchors', 1, [])); % Transpose and flatten);
-                    [testData, ps] = mapminmax('apply', testData', ps);
+                    %testData = cat(2, noisyDistances', estimatedTagPos);
+                    %testData = cat(2, testData, reshape(initialAnchors', 1, [])); % Transpose and flatten);
+                    %[testData, ps] = mapminmax('apply', testData', ps);
 
-                    estimatedAnchors = net(testData);
-                    estimatedAnchors = reshape(estimatedAnchors, size(initialAnchors, 1), 3);
+                    %estimatedAnchors = net(testData);
+                    %estimatedAnchors = reshape(estimatedAnchors, size(initialAnchors, 1), 3);
+                    estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, estimatedTagPos);
                 case 'C'
                     estimatedAnchors = control(initialAnchors);
                 otherwise
