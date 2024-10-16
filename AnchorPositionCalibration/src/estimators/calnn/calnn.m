@@ -23,9 +23,9 @@ activation_functions = {'relu', 'sigmoid', 'linear'};  % Specify activation func
 net = initialize_network(layer_sizes, activation_functions);
 
 % Training using Adam optimization
-max_iters = 500000;
+max_iters = 5000;
 lambda = 0.0025;
-lr = 1e-5;
+lr = 1e-2;
 input = initial_anchors(:);
 input = cat(1, input, real_tag_position');
 delta = 1;  % Huber loss delta parameter
