@@ -23,13 +23,13 @@ activation_functions = {'relu', 'sigmoid', 'linear'};  % Specify activation func
 net = initialize_network(layer_sizes, activation_functions);
 
 % Training using Adam optimization
-max_iters = 5000;
+max_iters = 2000;
 lambda = 0.0025;
 lr = 1e-2;
 input = initial_anchors(:);
 input = cat(1, input, real_tag_position');
 delta = 1;  % Huber loss delta parameter
-[net, loss_history] = adam_optimization(net, input, real_distances, real_tag_position, n_anchors, max_iters, initial_anchors, lambda, lr, stds, false, delta);
+[net, loss_history] = adam_optimization(net, input, real_distances, real_tag_position, n_anchors, max_iters, initial_anchors, lambda, lr, stds, true, delta);
 
 % Final estimated anchor positions
 [final_outputs, ~] = forward_pass(net, input);

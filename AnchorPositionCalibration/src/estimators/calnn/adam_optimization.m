@@ -1,5 +1,5 @@
 % Optimized Adam optimization with random perturbation when loss stagnates
-function [net, loss_history] = adam_optimization(net, X, real_distances, real_tag_position, n_anchors, max_iters, initial_anchors, lambda, lr, stds, plot_loss, delta)
+function [net, loss_history] = adam_optimization(net, X, real_distances, real_tag_position, n_anchors, max_iters, initial_anchors, lambda, lr, stds, plot_loss, delta, plot_rm)
 
     % Adam hyperparameters
     tol = 1e-6;         % Tolerance for convergence
@@ -10,7 +10,8 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
     % Stagnation detection parameters
     stagnation_window = 100;          % Window size to detect stagnation
     stagnation_threshold = 1e-4;      % Threshold for loss stagnation
-    perturbation_strength = 0.05;     % Strength of random perturbation
+    perturbation_strength = 0.5; % Initial strength of random perturbation
+    perturbation_decay_factor = 0.95;  % Decay factor for perturbation strength
     
     % Initialize Adam parameters
     num_layers = length(net.layers);
@@ -29,17 +30,6 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
     
     loss_history = zeros(max_iters, 1);  % Preallocate array for loss values
 
-    % Initialize the figure for interactive plotting
-    if plot_loss
-        figure;
-        h = plot(NaN, NaN, 'LineWidth', 2);  % Empty plot initialized
-        xlabel('Epoch');
-        ylabel('Loss');
-        title('Loss over Epochs');
-        grid on;
-        hold on;  % Keep updating the same plot
-    end
-
     % Main optimization loop
     for iter = 1:max_iters
         % Forward pass
@@ -47,26 +37,25 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
         
         % Compute loss
         loss = compute_loss(outputs, real_distances, real_tag_position, n_anchors, initial_anchors, lambda, stds, delta);
-        %disp(['Iteration ', num2str(iter), ' Loss: ', num2str(loss)]);
+        disp(['Iteration ', num2str(iter), ' Loss: ', num2str(loss)]);
 
         % Store the loss for this iteration
         loss_history(iter) = loss;
 
-        % Update the plot interactively (optimized to update less frequently)
-        if plot_loss && mod(iter, 10) == 0  % Update every 10 iterations
-            set(h, 'XData', 1:iter, 'YData', loss_history(1:iter));  % Update data
-            drawnow;  % Force MATLAB to update the plot immediately
-        end
-
         % Check for stagnation
         if iter > stagnation_window
             loss_diff = abs(loss_history(iter) - loss_history(iter - stagnation_window));
-            if loss_diff < stagnation_threshold
-                % Apply random perturbation to the weights and biases
-                perturbation = perturbation_strength * randn(num_layers, 1);  % Generate perturbation once
-                for i = 1:num_layers
-                    net.layers{i}.W = net.layers{i}.W + perturbation(i) * randn(size(net.layers{i}.W));
-                    net.layers{i}.b = net.layers{i}.b + perturbation(i) * randn(size(net.layers{i}.b));
+            if mod(iter, stagnation_window) == 0
+                % Dynamically adjust perturbation strength based on iteration
+                perturbation_strength = perturbation_strength * perturbation_decay_factor;
+                loss_diff = abs(loss_history(iter) - loss_history(iter - stagnation_window + 1));
+                if loss_diff < stagnation_threshold && perturbation_strength > 1e-6  % Apply perturbation if above threshold
+                    % Apply random perturbation to the weights and biases
+                    perturbation = perturbation_strength * randn(num_layers, 1);  % Generate perturbation once
+                    for i = 1:num_layers
+                        net.layers{i}.W = net.layers{i}.W + perturbation(i) * randn(size(net.layers{i}.W));
+                        net.layers{i}.b = net.layers{i}.b + perturbation(i) * randn(size(net.layers{i}.b));
+                    end
                 end
             end
         end
@@ -103,5 +92,20 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
     % Trim loss history in case we converged early
     if iter < max_iters
         loss_history = loss_history(1:iter);
+    end
+
+    % Generate plot at the end
+    if plot_loss
+        figure('Units', 'Normalized', 'OuterPosition', [0 0 1 1]);  % Create a fullscreen figure
+        plot(1:length(loss_history), loss_history, 'LineWidth', 2);
+        xlabel('Epoch');
+        ylabel('Loss');
+        title(['Loss over Epochs (LR: ', num2str(lr), ', Lambda: ', num2str(lambda), ')']);
+        grid on;
+
+        % Save the plot with a meaningful filename
+        filename = ['loss_plot', '_lr', num2str(lr), '_lambda', num2str(lambda), '.png'];
+        saveas(gcf, filename);
+        disp(['Plot saved as ', filename]);
     end
 end
