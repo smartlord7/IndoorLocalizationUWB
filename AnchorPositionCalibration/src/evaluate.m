@@ -35,11 +35,11 @@ function evaluate()
     % Multiselect Listbox for Estimators
     uicontrol('Style', 'text', 'Position', [10, 400, 150, 20], 'String', 'Select Estimators:');
     estimatorListBox = uicontrol('Style', 'listbox', 'Position', [170, 300, 150, 100], ...
-        'String', {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'DDN', 'C'}, 'Max', 7, 'Min', 1, ...
+        'String', { 'CALNN', 'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'}, 'Max', 7, 'Min', 1, ...
         'Value', 1:7, 'Callback', @updateSelection);
 
     % Selected estimators list
-    selectedEstimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'DDN', 'C'};
+    selectedEstimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'CALNN', 'C'};
 
     % Function to update selected estimators
     function updateSelection(~, ~)
@@ -96,7 +96,7 @@ function evaluate()
             estName = selectedEstimators{i};
             disp(['Simulating for estimator: ', estName]);
 
-            if estName == "DDN"
+            if estName == "CALNN"
                 %[noisyDistances, cleanDistances, noisyAnchors, realAnchors, tagPositions] = generateData(1000, 1000, 6, [0.1], 1.0, true); % Adjust the number of samples and anchors
 
                 %trainData = cat(2, cleanDistances, tagPositions);
@@ -166,7 +166,7 @@ function evaluate()
                     estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, estimatedTagPos);
                 case 'GA'
                     estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, estimatedTagPos, bounds);
-                case 'DDN'                  
+                case 'CALNN'                  
                     %testData = cat(2, noisyDistances', estimatedTagPos);
                     %testData = cat(2, testData, reshape(initialAnchors', 1, [])); % Transpose and flatten);
                     %[testData, ps] = mapminmax('apply', testData', ps);

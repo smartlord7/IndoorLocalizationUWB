@@ -1,25 +1,51 @@
 % Optimized Adam optimization with random perturbation when loss stagnates
-function [net, loss_history] = adam_optimization(net, X, real_distances, real_tag_position, n_anchors, max_iters, initial_anchors, lambda, lr, stds, plot_loss, delta, plot_rm)
+function [net, loss_history] = adam_optimization(net, X, real_distances, real_tag_position, n_anchors, initial_anchors, params)
 
-    % Adam hyperparameters
-    tol = 1e-6;         % Tolerance for convergence
-    beta1 = 0.9;
-    beta2 = 0.999;
-    epsilon = 1e-8;
+    % Use default values if certain fields do not exist in params struct
+    if ~isfield(params, 'max_iters'), params.max_iters = 5000; end
+    if ~isfield(params, 'lambda'), params.lambda = 0.0025; end
+    if ~isfield(params, 'lr'), params.lr = 1e-3; end
+    if ~isfield(params, 'stds'), params.stds = ones(n_anchors, 3); end
+    if ~isfield(params, 'delta'), params.delta = 1; end
+    if ~isfield(params, 'plot_'), params.plot_ = false; end
+    if ~isfield(params, 'real_anchors'), params.real_anchors = false; end
 
-    % Stagnation detection parameters
-    stagnation_window = 100;          % Window size to detect stagnation
-    stagnation_threshold = 1e-4;      % Threshold for loss stagnation
-    perturbation_strength = 0.5; % Initial strength of random perturbation
-    perturbation_decay_factor = 0.95;  % Decay factor for perturbation strength
-    
+    % Adam hyperparameters, with default values if missing
+    if ~isfield(params, 'beta1'), params.beta1 = 0.9; end
+    if ~isfield(params, 'beta2'), params.beta2 = 0.999; end
+    if ~isfield(params, 'epsilon'), params.epsilon = 1e-8; end
+    if ~isfield(params, 'tol'), params.tol = 1e-6; end
+    if ~isfield(params, 'stagnation_window'), params.stagnation_window = 100; end
+    if ~isfield(params, 'stagnation_threshold'), params.stagnation_threshold = 1e-4; end
+    if ~isfield(params, 'perturbation_strength'), params.perturbation_strength = 0.5; end
+    if ~isfield(params, 'perturbation_decay_factor'), params.perturbation_decay_factor = 0.95; end
+
+    % Initialize variables for Adam optimizer
+    max_iters = params.max_iters;
+    beta1 = params.beta1;
+    beta2 = params.beta2;
+    epsilon = params.epsilon;
+    tol = params.tol;
+    lambda = params.lambda;
+    lr = params.lr;
+    stds = params.stds;
+    delta = params.delta;
+    plot_ = params.plot_;
+    real_anchors = params.real_anchors;
+
+    % Stagnation detection
+    stagnation_window = params.stagnation_window;
+    stagnation_threshold = params.stagnation_threshold;
+    perturbation_strength = params.perturbation_strength;
+    perturbation_decay_factor = params.perturbation_decay_factor;
+
     % Initialize Adam parameters
     num_layers = length(net.layers);
     mW = cell(num_layers, 1);
     vW = cell(num_layers, 1);
     mb = cell(num_layers, 1);
     vb = cell(num_layers, 1);
-    
+
     % Preallocate moment estimates
     for i = 1:num_layers
         mW{i} = zeros(size(net.layers{i}.W));
@@ -29,6 +55,10 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
     end
     
     loss_history = zeros(max_iters, 1);  % Preallocate array for loss values
+    if real_anchors ~= false
+        rmse_history = zeros(max_iters, 1);  % Preallocate array for RMSE values
+    end
+
 
     % Main optimization loop
     for iter = 1:max_iters
@@ -37,10 +67,16 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
         
         % Compute loss
         loss = compute_loss(outputs, real_distances, real_tag_position, n_anchors, initial_anchors, lambda, stds, delta);
-        disp(['Iteration ', num2str(iter), ' Loss: ', num2str(loss)]);
+        %disp(['Iteration ', num2str(iter), ' Loss: ', num2str(loss)]);
 
         % Store the loss for this iteration
         loss_history(iter) = loss;
+
+        if real_anchors ~= false
+            outputs_ = reshape(outputs, [n_anchors, 3]);
+            rmse = root_mean_squared_error(outputs_, real_anchors);
+            rmse_history(iter) = rmse;
+        end
 
         % Check for stagnation
         if iter > stagnation_window
@@ -48,10 +84,9 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
             if mod(iter, stagnation_window) == 0
                 % Dynamically adjust perturbation strength based on iteration
                 perturbation_strength = perturbation_strength * perturbation_decay_factor;
-                loss_diff = abs(loss_history(iter) - loss_history(iter - stagnation_window + 1));
-                if loss_diff < stagnation_threshold && perturbation_strength > 1e-6  % Apply perturbation if above threshold
+                if loss_diff < stagnation_threshold && perturbation_strength > 1e-6
                     % Apply random perturbation to the weights and biases
-                    perturbation = perturbation_strength * randn(num_layers, 1);  % Generate perturbation once
+                    perturbation = perturbation_strength * randn(num_layers, 1);
                     for i = 1:num_layers
                         net.layers{i}.W = net.layers{i}.W + perturbation(i) * randn(size(net.layers{i}.W));
                         net.layers{i}.b = net.layers{i}.b + perturbation(i) * randn(size(net.layers{i}.b));
@@ -59,6 +94,7 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
                 end
             end
         end
+
 
         % Compute gradients via backpropagation
         grads = backward_pass(net, X, real_distances, real_tag_position, n_anchors, activations, initial_anchors, lambda);
@@ -85,6 +121,9 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
         % Check for convergence
         if loss < tol
             loss_history = loss_history(1:iter);  % Trim loss history up to the current iteration
+            if real_anchors ~= false
+                rmse_history = rmse_history(1:iter);
+            end
             break;
         end
     end
@@ -92,10 +131,13 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
     % Trim loss history in case we converged early
     if iter < max_iters
         loss_history = loss_history(1:iter);
+        if real_anchors ~= false
+            rmse_history = rmse_history(1:iter);
+        end
     end
 
     % Generate plot at the end
-    if plot_loss
+    if plot_
         figure('Units', 'Normalized', 'OuterPosition', [0 0 1 1]);  % Create a fullscreen figure
         plot(1:length(loss_history), loss_history, 'LineWidth', 2);
         xlabel('Epoch');
@@ -107,5 +149,19 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
         filename = ['loss_plot', '_lr', num2str(lr), '_lambda', num2str(lambda), '.png'];
         saveas(gcf, filename);
         disp(['Plot saved as ', filename]);
+
+        if real_anchors ~= false
+            figure('Units', 'Normalized', 'OuterPosition', [0 0 1 1]);  % Create a fullscreen figure
+            plot(1:length(rmse_history), rmse_history, 'LineWidth', 2);
+            xlabel('Epoch');
+            ylabel('Loss');
+            title(['RMSE over Epochs (LR: ', num2str(lr), ', Lambda: ', num2str(lambda), ')']);
+            grid on;
+    
+            % Save the plot with a meaningful filename
+            filename = ['rmse_plot', '_lr', num2str(lr), '_lambda', num2str(lambda), '.png'];
+            saveas(gcf, filename);
+            disp(['Plot saved as ', filename]);
+        end
     end
 end
