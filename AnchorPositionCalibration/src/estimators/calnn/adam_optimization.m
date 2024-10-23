@@ -8,7 +8,7 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
     if ~isfield(params, 'stds'), params.stds = ones(n_anchors, 3); end
     if ~isfield(params, 'delta'), params.delta = 1; end
     if ~isfield(params, 'plot_'), params.plot_ = false; end
-    if ~isfield(params, 'real_anchors'), params.real_anchors = false; end
+    if ~isfield(params, 'real_anchors'), params.real_anchors = []; end
 
     % Adam hyperparameters, with default values if missing
     if ~isfield(params, 'beta1'), params.beta1 = 0.9; end
@@ -17,8 +17,9 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
     if ~isfield(params, 'tol'), params.tol = 1e-6; end
     if ~isfield(params, 'stagnation_window'), params.stagnation_window = 100; end
     if ~isfield(params, 'stagnation_threshold'), params.stagnation_threshold = 1e-4; end
-    if ~isfield(params, 'perturbation_strength'), params.perturbation_strength = 0.5; end
+    if ~isfield(params, 'perturbation_strength'), params.perturbation_strength = 1; end
     if ~isfield(params, 'perturbation_decay_factor'), params.perturbation_decay_factor = 0.95; end
+    if ~isfield(params, 'neighborhood_size'), params.neighborhood_size = 3; end  % New parameter for perturbation size
 
     % Initialize variables for Adam optimizer
     max_iters = params.max_iters;
@@ -55,13 +56,14 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
     end
     
     loss_history = zeros(max_iters, 1);  % Preallocate array for loss values
-    if real_anchors ~= false
+    if ~isempty(real_anchors)
         rmse_history = zeros(max_iters, 1);  % Preallocate array for RMSE values
     end
 
 
     % Main optimization loop
     for iter = 1:max_iters
+        
         % Forward pass
         [outputs, activations] = forward_pass(net, X);
         
@@ -72,7 +74,7 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
         % Store the loss for this iteration
         loss_history(iter) = loss;
 
-        if real_anchors ~= false
+        if ~isempty(real_anchors)
             outputs_ = reshape(outputs, [n_anchors, 3]);
             rmse = root_mean_squared_error(outputs_, real_anchors);
             rmse_history(iter) = rmse;
@@ -94,7 +96,6 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
                 end
             end
         end
-
 
         % Compute gradients via backpropagation
         grads = backward_pass(net, X, real_distances, real_tag_position, n_anchors, activations, initial_anchors, lambda);
@@ -131,7 +132,7 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
     % Trim loss history in case we converged early
     if iter < max_iters
         loss_history = loss_history(1:iter);
-        if real_anchors ~= false
+        if ~isempty(real_anchors)
             rmse_history = rmse_history(1:iter);
         end
     end
@@ -150,7 +151,7 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
         saveas(gcf, filename);
         disp(['Plot saved as ', filename]);
 
-        if real_anchors ~= false
+        if ~isempty(real_anchors)
             figure('Units', 'Normalized', 'OuterPosition', [0 0 1 1]);  % Create a fullscreen figure
             plot(1:length(rmse_history), rmse_history, 'LineWidth', 2);
             xlabel('Epoch');

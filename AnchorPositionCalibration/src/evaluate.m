@@ -173,7 +173,7 @@ function evaluate()
 
                     %estimatedAnchors = net(testData);
                     %estimatedAnchors = reshape(estimatedAnchors, size(initialAnchors, 1), 3);
-                    estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, estimatedTagPos, anchorNoise);
+                    estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, estimatedTagPos, anchorNoise, bounds);
                 case 'C'
                     estimatedAnchors = control(initialAnchors);
                 otherwise

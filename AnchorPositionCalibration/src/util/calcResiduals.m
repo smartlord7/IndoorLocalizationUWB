@@ -6,7 +6,7 @@ function residuals = calcResiduals(anchors, ~, distances_noisy, tagPos, numAncho
     residuals = zeros(numAnchors, 1);
     for i = 1:numAnchors
         predictedDistance = norm(anchors(i, :) - tagPos);
-        residuals(i) = predictedDistance - distances_noisy(i);
+        residuals(i) = (predictedDistance - distances_noisy(i))^2;
     end
     
     % Flatten residuals into a vector

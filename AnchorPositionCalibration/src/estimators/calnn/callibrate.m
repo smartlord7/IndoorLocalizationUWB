@@ -1,4 +1,4 @@
-function final_anchors = callibrate(n_anchors, initial_anchors, real_distances, real_tag_position, std)
+function final_anchors = callibrate(n_anchors, initial_anchors, real_distances, real_tag_position, std, bounds)
     % Network initialization (input, hidden layers, output)
     layer_sizes = [3 * n_anchors + 3, 10, 10, 3 * n_anchors];  % Input, hidden1, hidden2, output
     activation_functions = {'relu', 'sigmoid', 'linear'};  % Specify activation functions for each layer
@@ -21,4 +21,7 @@ function final_anchors = callibrate(n_anchors, initial_anchors, real_distances, 
     % Final estimated anchor positions
     [final_outputs, ~] = forward_pass(net, input);
     final_anchors = reshape(final_outputs, [n_anchors, 3]);
+
+
+    final_anchors = nonlinearLeastSquares(real_distances, final_anchors, real_tag_position, bounds);
 end
