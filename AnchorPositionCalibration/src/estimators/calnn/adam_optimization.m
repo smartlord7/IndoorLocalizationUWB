@@ -19,7 +19,6 @@ function [net, loss_history] = adam_optimization(net, X, real_distances, real_ta
     if ~isfield(params, 'stagnation_threshold'), params.stagnation_threshold = 1e-4; end
     if ~isfield(params, 'perturbation_strength'), params.perturbation_strength = 1; end
     if ~isfield(params, 'perturbation_decay_factor'), params.perturbation_decay_factor = 0.95; end
-    if ~isfield(params, 'neighborhood_size'), params.neighborhood_size = 3; end  % New parameter for perturbation size
 
     % Initialize variables for Adam optimizer
     max_iters = params.max_iters;

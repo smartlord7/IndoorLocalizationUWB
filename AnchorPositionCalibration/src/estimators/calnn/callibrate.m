@@ -9,7 +9,7 @@ function final_anchors = callibrate(n_anchors, initial_anchors, real_distances, 
    % Parameters struct
     params = struct();
     params.max_iters = 6000;
-    params.lambda = 0.0025;    % Regularization parameter
+    params.lambda = 0.025;    % Regularization parameter
     params.lr = 1e-2;          % Learning rate
     params.stds = stds;        % Standard deviations
     params.delta = 1;          % Huber loss delta parameter
