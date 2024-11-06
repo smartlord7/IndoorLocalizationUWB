@@ -1,4 +1,4 @@
-function estimatedAnchors = nonlinearLeastSquares(distances_noisy, trueAnchors, tagPos, bounds, isDynamic)
+function estimatedAnchors = nonlinearLeastSquares(distances_noisy, true_inter_anchor_distances, trueAnchors, tagPos, bounds, isDynamic)
     % Number of anchors
     numAnchors = size(trueAnchors, 1);
     numVars = numAnchors * 3;
@@ -6,7 +6,7 @@ function estimatedAnchors = nonlinearLeastSquares(distances_noisy, trueAnchors, 
 
     % Define the objective function for the least squares problem
     if isDynamic
-        objectiveFunction = @(anchors) calcWeightedResiduals(anchors, distances_noisy, tagPos, numAnchors, numSamples);
+        objectiveFunction = @(anchors) calcWeightedResiduals(anchors, distances_noisy, tagPos, numAnchors, numSamples, true_inter_anchor_distances);
     else
         objectiveFunction = @(anchors) calcResiduals(anchors, distances_noisy, tagPos, numAnchors);
     end

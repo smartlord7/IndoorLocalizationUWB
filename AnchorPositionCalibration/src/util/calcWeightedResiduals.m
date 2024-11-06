@@ -1,4 +1,4 @@
-function residuals = calcWeightedResiduals(anchors, distances_noisy, tagPos, numAnchors, numSamples)
+function residuals = calcWeightedResiduals(anchors, distances_noisy, tagPos, numAnchors, numSamples, interanchor_distances)
     % Reshape the flat vector of anchors back into matrix form
     anchors = reshape(anchors, [numAnchors, 3]);
     
@@ -16,6 +16,14 @@ function residuals = calcWeightedResiduals(anchors, distances_noisy, tagPos, num
     % Calculate residuals matrix with weights applied
     residualsMatrix = (predictedDistances - distances_noisy) .* weights; % element-wise weighting
 
+    % Precompute pairwise inter-anchor distances (vectorized)
+        [i_idx, j_idx] = find(triu(ones(numAnchors), 1)); % Get index pairs for unique upper triangle
+        dist_diffs = sqrt(sum((anchors(i_idx, :) - anchors(j_idx, :)).^2, 2)) - ...
+                     interanchor_distances(sub2ind(size(interanchor_distances), i_idx, j_idx));
+        anchor_dist_errors = dist_diffs.^2;
+
     % Convert residuals matrix to a column vector
     residuals = residualsMatrix(:);
+
+    residuals = [residuals; anchor_dist_errors];
 end

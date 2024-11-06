@@ -154,11 +154,11 @@ function evaluate()
 
             estimatedTagPos = trilateration(trueAnchors, trueAnchors, currentTagPos, 1000, toaNoise, distanceNoise);
             rmse(numAnchors + 1, sample, 1) = sqrt(mean(((estimatedTagPos - currentTagPos).^2), 2));
+            tagPos = tagPositions(1:sample, :);
             
             % Estimate anchor positions based on the noisy distances
             switch estimator
                 case 'NLS'
-                    tagPos = tagPositions(1:sample, :);
                     estimatedAnchors = nonlinearLeastSquares(noisyDistancesHistory, initialAnchors, tagPos, bounds, true);
                 case 'MLE'
                     estimatedAnchors = maximumLikelihoodEstimation(noisyDistances, initialAnchors, estimatedTagPos);
@@ -179,7 +179,7 @@ function evaluate()
 
                     %estimatedAnchors = net(testData);
                     %estimatedAnchors = reshape(estimatedAnchors, size(initialAnchors, 1), 3);
-                    estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, estimatedTagPos, anchorNoise, bounds);
+                    estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, estimatedTagPos, anchorNoise, bounds, noisyDistancesHistory, tagPos);
                 case 'C'
                     estimatedAnchors = control(initialAnchors);
                 otherwise
