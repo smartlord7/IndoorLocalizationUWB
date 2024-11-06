@@ -134,6 +134,8 @@ function evaluate()
     function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds)
         % Initialize matrix to accumulate RMSE
         rmse = zeros(numAnchors + 1, numSamples, numTopologies);
+        % Initialize storage for noisy distances
+        noisyDistancesHistory = [];  
         disp(['Simulating calibration for estimator: ', estimator]);
 
         % Perform calibration and compute RMSE
@@ -145,6 +147,9 @@ function evaluate()
             % Simulate distances with noise for the current tag position
             trueDistances = sqrt(sum((trueAnchors - currentTagPos).^2, 2));
             noisyDistances = trueDistances + randn(size(trueDistances)) * distanceNoise;
+            % Append the current noisy distances to the history
+            noisyDistancesHistory = [noisyDistancesHistory; noisyDistances'];
+    
             estimatedAnchors = [];
 
             estimatedTagPos = trilateration(trueAnchors, trueAnchors, currentTagPos, 1000, toaNoise, distanceNoise);
@@ -153,7 +158,8 @@ function evaluate()
             % Estimate anchor positions based on the noisy distances
             switch estimator
                 case 'NLS'
-                    estimatedAnchors = nonlinearLeastSquares(noisyDistances, initialAnchors, estimatedTagPos, bounds);
+                    tagPos = tagPositions(1:sample, :);
+                    estimatedAnchors = nonlinearLeastSquares(noisyDistancesHistory, initialAnchors, tagPos, bounds, true);
                 case 'MLE'
                     estimatedAnchors = maximumLikelihoodEstimation(noisyDistances, initialAnchors, estimatedTagPos);
                 case 'EKF'
