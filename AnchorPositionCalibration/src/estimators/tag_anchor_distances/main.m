@@ -8,7 +8,7 @@ end
 % Example setup and initialization
 rng(0);
 n_anchors = 8;
-std = 5; 
+std = 1; 
 mx = [10 10 10];
 bounds = buildBounds(mx, n_anchors);
 
