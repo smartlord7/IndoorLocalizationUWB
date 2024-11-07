@@ -1,6 +1,6 @@
 function evaluate()
     % Create a figure for UI
-    fig = figure('Name', 'Anchor Calibration Simulation', 'Position', [100, 100, 800, 600]);
+    fig = figure('Name', 'Anchor Calibration Simulation', 'Position', [100, 100, 1200, 600]);
     disp('UI Figure created.');
 
     % Default Parameters
@@ -15,13 +15,13 @@ function evaluate()
 
     % UI Controls
     uicontrol('Style', 'text', 'Position', [10, 550, 150, 20], 'String', 'Number of Anchors:');
-    numAnchorsEdit = uicontrol('Style', 'edit', 'Position', [170, 550, 100, 20], 'String', num2str(defaultNumAnchors));
+    numAnchorsEdit = uicontrol('Style', 'edit', 'Position', [170, 550, 100, 20], 'String', num2str(defaultNumAnchors), 'Callback', @updateRoomAndAnchors);
     
     uicontrol('Style', 'text', 'Position', [10, 520, 150, 20], 'String', 'Number of Samples:');
     numSamplesEdit = uicontrol('Style', 'edit', 'Position', [170, 520, 100, 20], 'String', num2str(defaultNumSamples));
     
     uicontrol('Style', 'text', 'Position', [10, 490, 150, 20], 'String', 'Anchor Noise:');
-    anchorNoiseEdit = uicontrol('Style', 'edit', 'Position', [170, 490, 100, 20], 'String', num2str(defaultAnchorNoise));
+    anchorNoiseEdit = uicontrol('Style', 'edit', 'Position', [170, 490, 100, 20], 'String', num2str(defaultAnchorNoise), 'Callback', @updateRoomAndAnchors);
     
     uicontrol('Style', 'text', 'Position', [10, 460, 150, 20], 'String', 'Distance Noise:');
     distanceNoiseEdit = uicontrol('Style', 'edit', 'Position', [170, 460, 100, 20], 'String', num2str(defaultDistanceNoise));
@@ -31,13 +31,13 @@ function evaluate()
 
     % Room dimension controls
     uicontrol('Style', 'text', 'Position', [10, 370, 150, 20], 'String', 'Room Dimension X (m):');
-    roomDimXEdit = uicontrol('Style', 'edit', 'Position', [170, 370, 100, 20], 'String', num2str(defaultRoomDimensions(1)));
+    roomDimXEdit = uicontrol('Style', 'edit', 'Position', [170, 370, 100, 20], 'String', num2str(defaultRoomDimensions(1)), 'Callback', @updateRoomAndAnchors);
 
     uicontrol('Style', 'text', 'Position', [10, 340, 150, 20], 'String', 'Room Dimension Y (m):');
-    roomDimYEdit = uicontrol('Style', 'edit', 'Position', [170, 340, 100, 20], 'String', num2str(defaultRoomDimensions(2)));
+    roomDimYEdit = uicontrol('Style', 'edit', 'Position', [170, 340, 100, 20], 'String', num2str(defaultRoomDimensions(2)), 'Callback', @updateRoomAndAnchors);
 
     uicontrol('Style', 'text', 'Position', [10, 310, 150, 20], 'String', 'Room Dimension Z (m):');
-    roomDimZEdit = uicontrol('Style', 'edit', 'Position', [170, 310, 100, 20], 'String', num2str(defaultRoomDimensions(3)));
+    roomDimZEdit = uicontrol('Style', 'edit', 'Position', [170, 310, 100, 20], 'String', num2str(defaultRoomDimensions(3)), 'Callback', @updateRoomAndAnchors);
 
     % Multiselect Listbox for Estimators
     uicontrol('Style', 'text', 'Position', [10, 280, 150, 20], 'String', 'Select Estimators:');
@@ -54,9 +54,80 @@ function evaluate()
         disp('Updated selected estimators.');
     end
 
+    % Axes for the 3D room and anchors plot
+    ax = axes('Parent', fig, 'Position', [0.4, 0.2, 0.55, 0.75]);
+    plotRoomAndAnchors();  % Initial plot of the room and anchors
+
     % Run Simulation button
     uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run Simulation', ...
         'Callback', @(~, ~) runSimulation());
+    
+    % Callback to update room and anchors
+    function updateRoomAndAnchors(~, ~)
+        plotRoomAndAnchors();
+    end
+
+   function plotRoomAndAnchors()
+    % Get the room dimensions and number of anchors
+    mx = str2double(roomDimXEdit.String);
+    my = str2double(roomDimYEdit.String);
+    mz = str2double(roomDimZEdit.String);
+    numAnchors = str2double(numAnchorsEdit.String);
+    anchorNoise = str2double(anchorNoiseEdit.String);  % Retrieve anchor noise for uncertainty visualization
+    
+    % Generate anchor positions randomly within the room dimensions
+    anchorPositions = generateAnchors([mx, my, mz], numAnchors);
+    
+    % Clear the axes and set limits
+    cla(ax);
+    hold(ax, 'on');
+    axis(ax, [-1 - anchorNoise mx + 1 + anchorNoise -1 - anchorNoise my + 1 + anchorNoise -1 - anchorNoise mz + 1 + anchorNoise]);
+    xlabel(ax, 'X (m)');
+    ylabel(ax, 'Y (m)');
+    zlabel(ax, 'Z (m)');
+    grid(ax, 'on');
+    view(ax, 3);
+    
+    % Define a semi-transparent color for the cube's edges
+    transparentGray = [0 0 0 0.3];  % RGB with 0.3 alpha for transparency
+    
+    % Draw the room as a wireframe cube
+    % Bottom face
+    plot3(ax, [0 mx mx 0 0], [0 0 my my 0], [0 0 0 0 0], 'Color', transparentGray);
+    % Top face
+    plot3(ax, [0 mx mx 0 0], [0 0 my my 0], [mz mz mz mz mz], 'Color', transparentGray);
+    % Vertical edges connecting top and bottom faces
+    plot3(ax, [0 0], [0 0], [0 mz], 'Color', transparentGray);
+    plot3(ax, [mx mx], [0 0], [0 mz], 'Color', transparentGray);
+    plot3(ax, [0 0], [my my], [0 mz], 'Color', transparentGray);
+    plot3(ax, [mx mx], [my my], [0 mz], 'Color', transparentGray);
+    
+    % Plot anchors as spheres with Gouraud lighting
+    [sx, sy, sz] = sphere(20);  % Sphere for anchor representation
+    for i = 1:numAnchors
+        x = anchorPositions(i, 1);
+        y = anchorPositions(i, 2);
+        z = anchorPositions(i, 3);
+
+        % Plot the main anchor as a solid sphere
+        surf(ax, x + 0.2*sx, y + 0.2*sy, z + 0.2*sz, ...
+             'FaceColor', 'r', 'EdgeColor', 'none', 'FaceLighting', 'gouraud');
+
+       % Generate points for 3D Gaussian cloud around the anchor
+        numCloudPoints = 500;  % Number of points in the Gaussian cloud
+        cloudPoints = mvnrnd([x, y, z], (anchorNoise^2) * eye(3), numCloudPoints);
+
+        % Plot the Gaussian-distributed cloud points
+        scatter3(ax, cloudPoints(:, 1), cloudPoints(:, 2), cloudPoints(:, 3), ...
+                 10, 'MarkerFaceColor', [0.5, 0.5, 1], 'MarkerEdgeColor', 'none', ...
+                 'MarkerFaceAlpha', 0.3);  % Semi-transparent points
+    end
+
+    % Add a light to enhance the 3D effect
+    camlight(ax, 'headlight');  
+    hold(ax, 'off');
+end
+
 
     % Function to Run Simulation
     function runSimulation()
