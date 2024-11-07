@@ -8,7 +8,7 @@ end
 % Example setup and initialization
 rng(0);
 n_anchors = 8;
-std = 1; 
+std = 5; 
 mx = [10 10 10];
 bounds = buildBounds(mx, n_anchors);
 
@@ -42,10 +42,12 @@ for ix = 1:numel(x_vals)
     tag_distances = [tag_distances; tag_distance];
 
     % Estimate anchor positions based on current tag position
-    estimated_anchors = estimateAnchorPositions(n_anchors, initial_anchors, tag_distance', tag_position, tag_positions(1:ix, :), tag_distances(1:ix, :), true_inter_anchor_distances, bounds);
+    estimated_anchors = estimateAnchorPositions(n_anchors, initial_anchors, tag_distance', tag_position, tag_positions, tag_distances, true_inter_anchor_distances, bounds);
 
     % Calculate mean squared error between true and estimated anchors
-    error_grid(ix) = mean(sqrt(sum((estimated_anchors - real_anchors).^2, 2)));
+    error = mean(sqrt(sum((estimated_anchors - real_anchors).^2, 2)));
+    display("MSE: " + error);
+    error_grid(ix) = error;
 end
 
 % Plotting the error as a 3D surface

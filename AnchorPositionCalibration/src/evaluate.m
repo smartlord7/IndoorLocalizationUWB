@@ -86,6 +86,14 @@ function evaluate()
         trueAnchors = generateAnchors(mx, numAnchors);
         disp('True anchor positions generated.');
 
+        % Precompute true inter-anchor distances
+        true_inter_anchor_distances = zeros(numAnchors, numAnchors);
+        for i = 1:numAnchors-1
+            for j = i+1:numAnchors
+                true_inter_anchor_distances(i, j) = norm(trueAnchors(i, :) - trueAnchors(j, :));
+            end
+        end
+
         % Add Gaussian noise to anchor positions for initial guess
         initialAnchors = trueAnchors + anchorNoise * randn(size(trueAnchors));
         disp('Initial anchor positions with noise generated.');
@@ -105,12 +113,12 @@ function evaluate()
             end
 
             % Scenario 1: Static Tag
-            rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds);
+            rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds);
             plotAndSaveResults(rmseStatic, estName, 'Static');
             disp(['Static scenario RMSE calculated for estimator: ', estName]);
 
             % Scenario 2: Moving Tag
-            rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds);
+            rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds);
             plotAndSaveResults(rmseMoving, estName, 'Moving');
             disp(['Moving scenario RMSE calculated for estimator: ', estName]);
 
@@ -131,7 +139,7 @@ function evaluate()
     end
 
     % Function to simulate calibration
-    function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, anchorNoise, toaNoise, numSamples, bounds)
+    function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds)
         % Initialize matrix to accumulate RMSE
         rmse = zeros(numAnchors + 1, numSamples, numTopologies);
         % Initialize storage for noisy distances
@@ -179,7 +187,7 @@ function evaluate()
 
                     %estimatedAnchors = net(testData);
                     %estimatedAnchors = reshape(estimatedAnchors, size(initialAnchors, 1), 3);
-                    estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, estimatedTagPos, anchorNoise, bounds, noisyDistancesHistory, tagPos);
+                    estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, true_inter_anchor_distances, estimatedTagPos, anchorNoise, bounds, noisyDistancesHistory, tagPos);
                 case 'C'
                     estimatedAnchors = control(initialAnchors);
                 otherwise
