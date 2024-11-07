@@ -9,7 +9,6 @@ function evaluate()
     defaultAnchorNoise = 1;
     defaultDistanceNoise = 0.1;
     defaultToaNoise = 1e-10;
-    defaultNumTopologies = 1;
     defaultRoomDimensions = [10, 10, 10]; % Room dimensions in meters (mx, my, mz)
     rng(0);
     disp('Default parameters set.');
@@ -29,9 +28,6 @@ function evaluate()
 
     uicontrol('Style', 'text', 'Position', [10, 430, 150, 20], 'String', 'ToA Noise:');
     toaNoiseEdit = uicontrol('Style', 'edit', 'Position', [170, 430, 100, 20], 'String', num2str(defaultToaNoise));
-
-    uicontrol('Style', 'text', 'Position', [10, 400, 150, 20], 'String', 'Number of Topologies:');
-    numTopologiesEdit = uicontrol('Style', 'edit', 'Position', [170, 400, 100, 20], 'String', num2str(defaultNumTopologies));
 
     % Room dimension controls
     uicontrol('Style', 'text', 'Position', [10, 370, 150, 20], 'String', 'Room Dimension X (m):');
@@ -70,7 +66,7 @@ function evaluate()
         anchorNoise = str2double(anchorNoiseEdit.String);
         distanceNoise = str2double(distanceNoiseEdit.String);
         toaNoise = str2double(toaNoiseEdit.String);
-        numTopologies = str2double(numTopologiesEdit.String);
+        numTopologies = 1;
         
         % Room dimensions
         mx = str2double(roomDimXEdit.String);
