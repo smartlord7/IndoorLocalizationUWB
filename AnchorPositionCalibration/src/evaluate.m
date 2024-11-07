@@ -10,6 +10,7 @@ function evaluate()
     defaultDistanceNoise = 0.1;
     defaultToaNoise = 1e-10;
     defaultNumTopologies = 1;
+    defaultRoomDimensions = [10, 10, 10]; % Room dimensions in meters (mx, my, mz)
     rng(0);
     disp('Default parameters set.');
 
@@ -32,9 +33,19 @@ function evaluate()
     uicontrol('Style', 'text', 'Position', [10, 400, 150, 20], 'String', 'Number of Topologies:');
     numTopologiesEdit = uicontrol('Style', 'edit', 'Position', [170, 400, 100, 20], 'String', num2str(defaultNumTopologies));
 
+    % Room dimension controls
+    uicontrol('Style', 'text', 'Position', [10, 370, 150, 20], 'String', 'Room Dimension X (m):');
+    roomDimXEdit = uicontrol('Style', 'edit', 'Position', [170, 370, 100, 20], 'String', num2str(defaultRoomDimensions(1)));
+
+    uicontrol('Style', 'text', 'Position', [10, 340, 150, 20], 'String', 'Room Dimension Y (m):');
+    roomDimYEdit = uicontrol('Style', 'edit', 'Position', [170, 340, 100, 20], 'String', num2str(defaultRoomDimensions(2)));
+
+    uicontrol('Style', 'text', 'Position', [10, 310, 150, 20], 'String', 'Room Dimension Z (m):');
+    roomDimZEdit = uicontrol('Style', 'edit', 'Position', [170, 310, 100, 20], 'String', num2str(defaultRoomDimensions(3)));
+
     % Multiselect Listbox for Estimators
-    uicontrol('Style', 'text', 'Position', [10, 400, 150, 20], 'String', 'Select Estimators:');
-    estimatorListBox = uicontrol('Style', 'listbox', 'Position', [170, 300, 150, 100], ...
+    uicontrol('Style', 'text', 'Position', [10, 280, 150, 20], 'String', 'Select Estimators:');
+    estimatorListBox = uicontrol('Style', 'listbox', 'Position', [170, 180, 150, 100], ...
         'String', { 'CALNN', 'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'}, 'Max', 7, 'Min', 1, ...
         'Value', 1:7, 'Callback', @updateSelection);
 
@@ -48,7 +59,7 @@ function evaluate()
     end
 
     % Run Simulation button
-    uicontrol('Style', 'pushbutton', 'Position', [10, 250, 150, 30], 'String', 'Run Simulation', ...
+    uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run Simulation', ...
         'Callback', @(~, ~) runSimulation());
 
     % Function to Run Simulation
@@ -60,17 +71,22 @@ function evaluate()
         distanceNoise = str2double(distanceNoiseEdit.String);
         toaNoise = str2double(toaNoiseEdit.String);
         numTopologies = str2double(numTopologiesEdit.String);
-        mx = [10 10 10];
+        
+        % Room dimensions
+        mx = str2double(roomDimXEdit.String);
+        my = str2double(roomDimYEdit.String);
+        mz = str2double(roomDimZEdit.String);
+        roomDimensions = [mx, my, mz];
 
-        bounds = buildBounds(mx, numAnchors);
+        bounds = buildBounds(roomDimensions, numAnchors);
         disp('Bounds built for anchor positions.');
 
         % Generate random tag positions along a path
-        tagPositionsMoving = generateRandomPath(numSamples, mx);
+        tagPositionsMoving = generateRandomPath(numSamples, roomDimensions);
         disp('Generated random path for moving tag.');
 
         % Static tag at a fixed position
-        tagPositionsStatic = repmat([10, 10, 10], numSamples, 1);
+        tagPositionsStatic = repmat([mx/2, my/2, mz/2], numSamples, 1);
         disp('Static tag positions generated.');
 
         % Prepare CSV files to store results
@@ -83,7 +99,7 @@ function evaluate()
         fprintf(csvFileTag, 'Estimator,Scenario,Topology,Sample,Error\n');
 
         % Generate true anchor positions
-        trueAnchors = generateAnchors(mx, numAnchors);
+        trueAnchors = generateAnchors(roomDimensions, numAnchors);
         disp('True anchor positions generated.');
 
         % Precompute true inter-anchor distances
@@ -104,14 +120,6 @@ function evaluate()
             estName = selectedEstimators{i};
             disp(['Simulating for estimator: ', estName]);
 
-            if estName == "CALNN"
-                %[noisyDistances, cleanDistances, noisyAnchors, realAnchors, tagPositions] = generateData(1000, 1000, 6, [0.1], 1.0, true); % Adjust the number of samples and anchors
-
-                %trainData = cat(2, cleanDistances, tagPositions);
-                %trainData = cat(2, trainData, noisyAnchors);
-                %[ps, net, ~, valPerformance] = trainRegressionNetwork_(100, 50, 3, 'tansig', 0.06333, trainData, realAnchors);
-            end
-
             % Scenario 1: Static Tag
             rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds);
             plotAndSaveResults(rmseStatic, estName, 'Static');
@@ -127,7 +135,7 @@ function evaluate()
             saveErrorsToCSV(rmseMoving, estName, 'Moving', csvFileAnchor, csvFileTag);
             disp(['Errors saved to CSV for estimator: ', estName]);
         end
-        
+
         % Close CSV files
         fclose(csvFileAnchor);
         fclose(csvFileTag);
@@ -137,6 +145,7 @@ function evaluate()
         analyzeResults('../data/anchor_errors.csv', '../data/tag_errors.csv', selectedEstimators);
         disp('Analysis of results completed.');
     end
+
 
     % Function to simulate calibration
     function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds)
