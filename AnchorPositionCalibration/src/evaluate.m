@@ -367,14 +367,19 @@ end
         saveas(gcf, sprintf('../img/%s_%s_Estimator_PValue_Heatmap.png', scenario, errorType));      
 
         
-        % Plot bar plot for mean errors
+        % Plot box plot for mean errors with log-scaled y-axis
         figure('Position', get(0, 'Screensize'));
         boxplot(meanErrors.mean_mean_Error, meanErrors.Estimator);
         title(sprintf('Mean %s Error for Each Estimator (%s Scenario)', errorType, scenario));
         xlabel('Estimator');
-        ylabel('Mean Error');
+        ylabel('Mean Error (Log Scale)');
         set(gca, 'FontSize', 12); % Increase font size for axes
-        saveas(gcf, sprintf('../img/Mean_%s_Error_BoxPlot_%s.png', errorType, scenario));
+        
+        % Set y-axis to logarithmic scale
+        set(gca, 'YScale', 'log');
+        
+        % Save the figure
+        saveas(gcf, sprintf('../img/Mean_%s_Error_BoxPlot_LogScale_%s.png', errorType, scenario));
 
         confidenceAnalysis(estimators, meanErrors, errorType, scenario);
         
