@@ -15,13 +15,13 @@ function evaluate()
 
     % UI Controls
     uicontrol('Style', 'text', 'Position', [10, 550, 150, 20], 'String', 'Number of Anchors:');
-    numAnchorsEdit = uicontrol('Style', 'edit', 'Position', [170, 550, 100, 20], 'String', num2str(defaultNumAnchors), 'Callback', @() updateRoomAndAnchors([]));
+    numAnchorsEdit = uicontrol('Style', 'edit', 'Position', [170, 550, 100, 20], 'String', num2str(defaultNumAnchors), 'Callback',  @updateRoomAndAnchors);
     
     uicontrol('Style', 'text', 'Position', [10, 520, 150, 20], 'String', 'Number of Samples:');
     numSamplesEdit = uicontrol('Style', 'edit', 'Position', [170, 520, 100, 20], 'String', num2str(defaultNumSamples));
     
     uicontrol('Style', 'text', 'Position', [10, 490, 150, 20], 'String', 'Anchor Noise:');
-    anchorNoiseEdit = uicontrol('Style', 'edit', 'Position', [170, 490, 100, 20], 'String', num2str(defaultAnchorNoise), 'Callback', @()updateRoomAndAnchors([]));
+    anchorNoiseEdit = uicontrol('Style', 'edit', 'Position', [170, 490, 100, 20], 'String', num2str(defaultAnchorNoise), 'Callback', @updateRoomAndAnchors);
     
     uicontrol('Style', 'text', 'Position', [10, 460, 150, 20], 'String', 'Distance Noise:');
     distanceNoiseEdit = uicontrol('Style', 'edit', 'Position', [170, 460, 100, 20], 'String', num2str(defaultDistanceNoise));
@@ -31,13 +31,13 @@ function evaluate()
 
     % Room dimension controls
     uicontrol('Style', 'text', 'Position', [10, 370, 150, 20], 'String', 'Room Dimension X (m):');
-    roomDimXEdit = uicontrol('Style', 'edit', 'Position', [170, 370, 100, 20], 'String', num2str(defaultRoomDimensions(1)), 'Callback', @()updateRoomAndAnchors([]));
+    roomDimXEdit = uicontrol('Style', 'edit', 'Position', [170, 370, 100, 20], 'String', num2str(defaultRoomDimensions(1)), 'Callback', @updateRoomAndAnchors);
 
     uicontrol('Style', 'text', 'Position', [10, 340, 150, 20], 'String', 'Room Dimension Y (m):');
-    roomDimYEdit = uicontrol('Style', 'edit', 'Position', [170, 340, 100, 20], 'String', num2str(defaultRoomDimensions(2)), 'Callback', @()updateRoomAndAnchors([]));
+    roomDimYEdit = uicontrol('Style', 'edit', 'Position', [170, 340, 100, 20], 'String', num2str(defaultRoomDimensions(2)), 'Callback', @updateRoomAndAnchors);
 
     uicontrol('Style', 'text', 'Position', [10, 310, 150, 20], 'String', 'Room Dimension Z (m):');
-    roomDimZEdit = uicontrol('Style', 'edit', 'Position', [170, 310, 100, 20], 'String', num2str(defaultRoomDimensions(3)), 'Callback', @()updateRoomAndAnchors([]));
+    roomDimZEdit = uicontrol('Style', 'edit', 'Position', [170, 310, 100, 20], 'String', num2str(defaultRoomDimensions(3)), 'Callback', @updateRoomAndAnchors);
 
     % Multiselect Listbox for Estimators
     uicontrol('Style', 'text', 'Position', [10, 280, 150, 20], 'String', 'Select Estimators:');
@@ -63,8 +63,8 @@ function evaluate()
         'Callback', @(~, ~) runSimulation());
     
     % Callback to update room and anchors
-    function updateRoomAndAnchors(~, ~, tagPositions)
-        plotRoomAndAnchors(tagPositions);
+    function updateRoomAndAnchors(~, ~)
+        plotRoomAndAnchors([]);
     end
 
    function plotRoomAndAnchors(tagPositions)
