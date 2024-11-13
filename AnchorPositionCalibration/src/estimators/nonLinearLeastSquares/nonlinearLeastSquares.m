@@ -8,7 +8,7 @@ function estimatedAnchors = nonlinearLeastSquares(distances_noisy, true_inter_an
     if isDynamic
         objectiveFunction = @(anchors) calcWeightedResiduals(anchors, distances_noisy, tagPos, numAnchors, numSamples, true_inter_anchor_distances);
     else
-        objectiveFunction = @(anchors) calcResiduals(anchors, distances_noisy, tagPos, numAnchors);
+        objectiveFunction = @(anchors) calcResiduals(anchors, distances_noisy, tagPos, numAnchors, true_inter_anchor_distances);
     end
 
     % Initial guess for the anchor positions (same as true anchors)
