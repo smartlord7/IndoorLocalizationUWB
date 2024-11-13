@@ -45,6 +45,22 @@ function evaluate()
         'String', { 'CALNN+NLS (static)', 'CALNN+NLS (dynamic)', 'NLS (static)', 'NLS (dynamic)', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'}, 'Max', 7, 'Min', 1, ...
         'Value', 1:7, 'Callback', @updateSelection);
 
+    % Checkbox for Inter-anchor distances
+    uicontrol('Style', 'checkbox', 'Position', [10, 100, 300, 20], 'String', 'Inter-anchor distances available', ...
+    'Value', 0, 'Callback', @toggleInterAnchorDistances);
+
+    useInterAnchorDistances = false;
+
+    function toggleInterAnchorDistances(src, ~)
+        if src.Value
+            disp('Inter-anchor distances enabled');
+            useInterAnchorDistances = true;
+        else
+            disp('Inter-anchor distances disabled');
+            useInterAnchorDistances = false;
+        end
+    end
+
     % Selected estimators list
     selectedEstimators = {'NLS (dynamic)', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'CALNN+NLS (static)', 'CALNN+NLS (dynamic)', 'C'};
 
@@ -179,12 +195,17 @@ end
         trueAnchors = generateAnchors(roomDimensions, numAnchors);
         disp('True anchor positions generated.');
 
-        % Precompute true inter-anchor distances
-        true_inter_anchor_distances = zeros(numAnchors, numAnchors);
-        for i = 1:numAnchors-1
-            for j = i+1:numAnchors
-                true_inter_anchor_distances(i, j) = norm(trueAnchors(i, :) - trueAnchors(j, :));
+
+        if useInterAnchorDistances
+            % Precompute true inter-anchor distances
+            true_inter_anchor_distances = zeros(numAnchors, numAnchors);
+            for i = 1:numAnchors-1
+                for j = i+1:numAnchors
+                    true_inter_anchor_distances(i, j) = norm(trueAnchors(i, :) - trueAnchors(j, :));
+                end
             end
+        else
+            true_inter_anchor_distances = [];
         end
 
         % Add Gaussian noise to anchor positions for initial guess
