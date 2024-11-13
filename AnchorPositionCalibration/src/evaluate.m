@@ -42,11 +42,11 @@ function evaluate()
     % Multiselect Listbox for Estimators
     uicontrol('Style', 'text', 'Position', [10, 280, 150, 20], 'String', 'Select Estimators:');
     estimatorListBox = uicontrol('Style', 'listbox', 'Position', [170, 180, 150, 100], ...
-        'String', { 'CALNN+NLS (static)', 'CALNN+NLS (dynamic)', 'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'}, 'Max', 7, 'Min', 1, ...
+        'String', { 'CALNN+NLS (static)', 'CALNN+NLS (dynamic)', 'NLS (static)', 'NLS (dynamic)', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'}, 'Max', 7, 'Min', 1, ...
         'Value', 1:7, 'Callback', @updateSelection);
 
     % Selected estimators list
-    selectedEstimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'CALNN+NLS (static)', 'CALNN+NLS (dynamic)', 'C'};
+    selectedEstimators = {'NLS (dynamic)', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'CALNN+NLS (static)', 'CALNN+NLS (dynamic)', 'C'};
 
     % Function to update selected estimators
     function updateSelection(~, ~)
@@ -252,8 +252,10 @@ end
             
             % Estimate anchor positions based on the noisy distances
             switch estimator
-                case 'NLS'
-                    estimatedAnchors = nonlinearLeastSquares(noisyDistancesHistory, initialAnchors, tagPos, bounds, true);
+                case 'NLS (static)'
+                    estimatedAnchors = nonlinearLeastSquares(noisyDistances, true_inter_anchor_distances, initialAnchors, estimatedTagPos, bounds, false);
+                case 'NLS (dynamic)'
+                    estimatedAnchors = nonlinearLeastSquares(noisyDistancesHistory, true_inter_anchor_distances, initialAnchors, tagPos, bounds, true);
                 case 'MLE'
                     estimatedAnchors = maximumLikelihoodEstimation(noisyDistances, initialAnchors, estimatedTagPos);
                 case 'EKF'
