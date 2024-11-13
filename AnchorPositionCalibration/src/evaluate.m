@@ -42,11 +42,11 @@ function evaluate()
     % Multiselect Listbox for Estimators
     uicontrol('Style', 'text', 'Position', [10, 280, 150, 20], 'String', 'Select Estimators:');
     estimatorListBox = uicontrol('Style', 'listbox', 'Position', [170, 180, 150, 100], ...
-        'String', { 'CALNN', 'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'}, 'Max', 7, 'Min', 1, ...
+        'String', { 'CALNN+NLS (static)', 'CALNN+NLS (dynamic)', 'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'}, 'Max', 7, 'Min', 1, ...
         'Value', 1:7, 'Callback', @updateSelection);
 
     % Selected estimators list
-    selectedEstimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'CALNN', 'C'};
+    selectedEstimators = {'NLS', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'CALNN+NLS (static)', 'CALNN+NLS (dynamic)', 'C'};
 
     % Function to update selected estimators
     function updateSelection(~, ~)
@@ -266,14 +266,22 @@ end
                     estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, estimatedTagPos);
                 case 'GA'
                     estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, estimatedTagPos, bounds);
-                case 'CALNN'                  
+                case 'CALNN+NLS (dynamic)'                  
                     %testData = cat(2, noisyDistances', estimatedTagPos);
                     %testData = cat(2, testData, reshape(initialAnchors', 1, [])); % Transpose and flatten);
                     %[testData, ps] = mapminmax('apply', testData', ps);
 
                     %estimatedAnchors = net(testData);
                     %estimatedAnchors = reshape(estimatedAnchors, size(initialAnchors, 1), 3);
-                    estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, true_inter_anchor_distances, estimatedTagPos, anchorNoise, bounds, noisyDistancesHistory, tagPos);
+                    estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, true_inter_anchor_distances, estimatedTagPos, anchorNoise, bounds, noisyDistancesHistory, tagPos, true);
+                case 'CALNN+NLS (static)'                  
+                %testData = cat(2, noisyDistances', estimatedTagPos);
+                %testData = cat(2, testData, reshape(initialAnchors', 1, [])); % Transpose and flatten);
+                %[testData, ps] = mapminmax('apply', testData', ps);
+
+                %estimatedAnchors = net(testData);
+                %estimatedAnchors = reshape(estimatedAnchors, size(initialAnchors, 1), 3);
+                estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, true_inter_anchor_distances, estimatedTagPos, anchorNoise, bounds, [], estimatedTagPos, false);
                 case 'C'
                     estimatedAnchors = control(initialAnchors);
                 otherwise
