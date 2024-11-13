@@ -1,10 +1,10 @@
-function estimatedAnchors = geneticAlgorithm(distances_noisy, initialGuess, tagPos, bounds)
+function estimatedAnchors = geneticAlgorithm(distances_noisy, initialGuess, tagPos, bounds, true_inter_anchor_distances)
     % Genetic Algorithm for anchor position estimation
     numAnchors = size(initialGuess, 1);
     numVars = numAnchors * 3;
 
     % Fitness function to minimize
-    fitnessFunction = @(anchors) sum(calcResiduals(anchors, initialGuess, distances_noisy, tagPos, numAnchors).^2);
+    fitnessFunction = @(anchors) sum(calcResiduals(anchors, distances_noisy, tagPos, numAnchors, true_inter_anchor_distances).^2);
 
     % Define the genetic algorithm parameters
     options = optimoptions('ga', ...

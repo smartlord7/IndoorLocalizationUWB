@@ -288,7 +288,7 @@ end
                 case 'IR'
                     estimatedAnchors = iterativeRefinement(noisyDistances, initialAnchors, estimatedTagPos);
                 case 'GA'
-                    estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, estimatedTagPos, bounds);
+                    estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, estimatedTagPos, bounds, true_inter_anchor_distances);
                 case 'CALNN+NLS (dynamic)'                  
                     %testData = cat(2, noisyDistances', estimatedTagPos);
                     %testData = cat(2, testData, reshape(initialAnchors', 1, [])); % Transpose and flatten);
