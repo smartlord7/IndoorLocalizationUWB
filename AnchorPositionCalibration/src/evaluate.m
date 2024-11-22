@@ -40,9 +40,9 @@ uicontrol('Style', 'text', 'Position', [10, 310, 150, 20], 'String', 'Room Dimen
 roomDimZEdit = uicontrol('Style', 'edit', 'Position', [170, 310, 100, 20], 'String', num2str(defaultRoomDimensions(3)), 'Callback', @updateRoomAndAnchors);
 
 % Multiselect Listbox for Estimators
-estimatorListBox = uicontrol('Style', 'listbox', 'Position', [170, 180, 150, 100], ...
+estimatorListBox = uicontrol('Style', 'listbox', 'Position', [170, 130, 150, 170], ...
     'String', { 'CALNN+NLS (static)', 'CALNN+NLS (dynamic)', 'NLS (static)', 'NLS (dynamic)', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'C'}, ...
-    'Max', 7, 'Min', 1, 'ButtonDownFcn', @listboxDoubleClick);
+    'Max', 7, 'Min', 1, 'ButtonDownFcn', @listboxDoubleClick, 'Callback', @updateSelection);
 
 % Store the last click time to detect double-clicks
 set(estimatorListBox, 'UserData', struct('LastClickTime', 0));
@@ -69,7 +69,7 @@ set(estimatorListBox, 'UserData', struct('LastClickTime', 0));
             %fprintf('Double-clicked on: %s\n', selectedString);
 
             % Call the update selection function or any other action here
-            updateSelection(selectedValue, selectedString);
+            editEstimatorsParameters(selectedValue, selectedString);
         end
     end
 
@@ -78,6 +78,11 @@ uicontrol('Style', 'checkbox', 'Position', [10, 100, 300, 20], 'String', 'Inter-
     'Value', 0, 'Callback', @toggleInterAnchorDistances);
 
 useInterAnchorDistances = false;
+
+    function updateSelection(~, ~)
+        % Get selected estimator(s)
+        selectedEstimators = estimatorListBox.String(estimatorListBox.Value);
+    end
 
     function toggleInterAnchorDistances(src, ~)
         if src.Value
@@ -97,9 +102,9 @@ selectedEstimators = {'NLS (dynamic)', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', '
         global parametersStruct;
         parametersStruct = struct( ...
             'CALNN_NLS_static', struct(), ...
-            'CALNN_NLS_dynamic', struct('Memory', 10, 'ReuseEstimates', true), ...
+            'CALNN_NLS_dynamic', struct('Memory', 30, 'ReuseEstimates', true), ...
             'NLS_static', struct(), ...
-            'NLS_dynamic', struct('Memory', 10), ...
+            'NLS_dynamic', struct('Memory', 30), ...
             'MLE', struct(), ...
             'EKF', struct(), ...
             'LLS', struct(), ...
@@ -111,64 +116,73 @@ selectedEstimators = {'NLS (dynamic)', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', '
 
 initializeEstimatorParameters();
 
-    function updateSelection(~, ~)
+    function editEstimatorsParameters(~, ~)
 
         global parametersStruct;
-        % Get selected estimator(s)
-        selectedEstimators = estimatorListBox.Value;
 
         % Create a new figure for parameter settings
         paramWindow = figure('Name', 'Estimator Parameters', 'Position', [500, 300, 300, 300]);
 
         % Loop through the selected estimators and create relevant
         % parameter fields
-        for idx = selectedEstimators
-            switch idx
-                case 1  % CALNN+NLS (static)
-                    uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'No additional parameters');
+        % Loop through selected estimators to create UI elements
+    for idx = 1:length(selectedEstimators)
+        estimator = selectedEstimators{idx};
+        switch estimator
+            case 'CALNN+NLS (static)'
+                uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], ...
+                    'String', 'No additional parameters');
 
-                case 2  % CALNN+NLS (dynamic)
-                    % Define Memory field
-                    uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'Define Memory:');
-                    uicontrol('Style', 'edit', 'Position', [10, 220, 100, 25], ...
-                        'String', num2str(parametersStruct.CALNN_NLS_dynamic.Memory), 'Tag', 'MemoryField');
-    
-                    % Reuse previous estimates checkbox
-                    uicontrol('Style', 'checkbox', 'Position', [10, 190, 200, 20], ...
+            case 'CALNN+NLS (dynamic)'
+                % Define Memory field
+                uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'Define Memory:');
+                uicontrol('Style', 'edit', 'Position', [10, 220, 100, 25], ...
+                    'String', num2str(parametersStruct.CALNN_NLS_dynamic.Memory), 'Tag', 'MemoryField');
+
+                % Reuse previous estimates checkbox
+                uicontrol('Style', 'checkbox', 'Position', [10, 190, 200, 20], ...
                     'String', 'Reuse previous estimates', ...
                     'Value', parametersStruct.CALNN_NLS_dynamic.ReuseEstimates, 'Tag', 'ReuseEstimatesCheckbox');
 
-                case 3  % NLS (static)
-                    uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'No additional parameters');
+            case 'NLS (static)'
+                uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], ...
+                    'String', 'No additional parameters');
 
-                case 4  % NLS (dynamic)
-                   % Define Memory field
-                    uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'Define Memory:');
-                    uicontrol('Style', 'edit', 'Position', [10, 220, 100, 25], ...
-                        'String', num2str(parametersStruct.NLS_dynamic.Memory), 'Tag', 'MemoryField');
+            case 'NLS (dynamic)'
+                % Define Memory field
+                uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'Define Memory:');
+                uicontrol('Style', 'edit', 'Position', [10, 220, 100, 25], ...
+                    'String', num2str(parametersStruct.NLS_dynamic.Memory), 'Tag', 'MemoryField');
 
-                case 5  % MLE
-                    uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'No additional parameters');
+            case 'MLE'
+                uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], ...
+                    'String', 'No additional parameters');
 
-                case 6  % EKF
-                    uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'No additional parameters');
+            case 'EKF'
+                uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], ...
+                    'String', 'No additional parameters');
 
-                case 7  % LLS
-                    uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'No additional parameters');
+            case 'LLS'
+                uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], ...
+                    'String', 'No additional parameters');
 
-                case 8  % WLS
-                    uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'No additional parameters');
+            case 'WLS'
+                uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], ...
+                    'String', 'No additional parameters');
 
-                case 9  % IR
-                    uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'No additional parameters');
+            case 'IR'
+                uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], ...
+                    'String', 'No additional parameters');
 
-                case 10 % GA
-                    uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'No additional parameters');
+            case 'GA'
+                uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], ...
+                    'String', 'No additional parameters');
 
-                case 11 % C
-                    uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], 'String', 'No additional parameters');
-            end
+            case 'C'
+                uicontrol('Style', 'text', 'Position', [10, 250, 200, 20], ...
+                    'String', 'No additional parameters');
         end
+    end
 
         % Add a button to save parameters
         uicontrol('Style', 'pushbutton', 'Position', [100, 10, 100, 40], 'String', 'Save Parameters', 'Callback', @saveParameters);
@@ -352,6 +366,8 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         disp('Initial anchor positions with noise generated.');
         net = {};
 
+        
+
         % Loop over each selected estimator
         for i = 1:length(selectedEstimators)
             estName = selectedEstimators{i};
@@ -386,6 +402,7 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
 
 % Function to simulate calibration
     function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds)
+        global parametersStruct;
         % Initialize matrix to accumulate RMSE
         rmse = zeros(numAnchors + 1, numSamples, numTopologies);
         % Initialize storage for noisy distances
@@ -429,6 +446,14 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
                 case 'GA'
                     estimatedAnchors = geneticAlgorithm(noisyDistances, initialAnchors, estimatedTagPos, bounds, true_inter_anchor_distances);
                 case 'CALNN+NLS (dynamic)'
+
+                    memory = parametersStruct.CALNN_NLS_dynamic.Memory;
+                    noisyDistancesHistory_ = noisyDistancesHistory;
+
+                    if sample > memory
+                        tagPos = tagPositions(sample - memory + 1:sample, :);
+                        noisyDistancesHistory_ = noisyDistancesHistory(sample - memory + 1:sample, :);
+                    end
                     %testData = cat(2, noisyDistances', estimatedTagPos);
                     %testData = cat(2, testData, reshape(initialAnchors',
                     %1, [])); % Transpose and flatten); [testData, ps] =
@@ -436,7 +461,11 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
 
                     %estimatedAnchors = net(testData); estimatedAnchors =
                     %reshape(estimatedAnchors, size(initialAnchors, 1), 3);
-                    estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, true_inter_anchor_distances, estimatedTagPos, anchorNoise, bounds, noisyDistancesHistory, tagPos, true);
+                    estimatedAnchors = callibrate(numAnchors, initialAnchors, noisyDistances, true_inter_anchor_distances, estimatedTagPos, anchorNoise, bounds, noisyDistancesHistory_, tagPos, true);
+
+                    if  parametersStruct.CALNN_NLS_dynamic.ReuseEstimates
+                        initialAnchors = estimatedAnchors;
+                    end
                 case 'CALNN+NLS (static)'
                     %testData = cat(2, noisyDistances', estimatedTagPos);
                     %testData = cat(2, testData, reshape(initialAnchors',
