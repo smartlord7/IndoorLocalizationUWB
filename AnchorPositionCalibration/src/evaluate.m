@@ -171,7 +171,7 @@ end
         disp('Bounds built for anchor positions.');
 
         % Generate random tag positions along a path
-        tagPositionsMoving = generateRandomPath(numSamples, roomDimensions);
+        tagPositionsMoving = generateEquallySpacedPath(numSamples, roomDimensions);
         disp('Generated random path for moving tag.');
 
         plotRoomAndAnchors(tagPositionsMoving);

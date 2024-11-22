@@ -1,7 +1,7 @@
 % Define Estimator function (unchanged)s
 function estimated_anchors = estimateAnchorPositions(n_anchors, initial_anchors, tagDistance, tag_position, tag_positions, tag_distances, true_inter_anchor_distances, bounds)
 
-   estimatedAnchors = callibrate(n_anchors, initial_anchors, tagDistance, true_inter_anchor_distances, tag_position, 1, bounds, tag_distances, tag_positions);
+   estimatedAnchors = callibrate(n_anchors, initial_anchors, tagDistance, true_inter_anchor_distances, tag_position, 1, bounds, tag_distances, tag_positions, true);
     estimated_anchors = reshape(estimatedAnchors, [n_anchors, 3]);
 end
 
