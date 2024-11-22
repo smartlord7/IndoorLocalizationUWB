@@ -8,7 +8,7 @@ end
 % Example setup and initialization
 rng(0);
 n_anchors = 8;
-std = 10; 
+std = 1; 
 mx = [10 10 10];
 bounds = buildBounds(mx, n_anchors);
 
@@ -43,7 +43,7 @@ for ix = 1:numel(x_vals)
 
     % Estimate anchor positions based on current tag position
     estimated_anchors = estimateAnchorPositions(n_anchors, initial_anchors, tag_distance', tag_position, tag_positions, tag_distances, true_inter_anchor_distances, bounds);
-    initial_anchors = estimated_anchors;
+    initial_anchors = initial_anchors;
 
     % Calculate mean squared error between true and estimated anchors
     error = mean(sqrt(sum((estimated_anchors - real_anchors).^2, 2)));
