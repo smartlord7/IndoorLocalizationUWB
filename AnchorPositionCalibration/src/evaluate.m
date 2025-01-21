@@ -642,7 +642,6 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         saveas(gcf, sprintf('../img/%s_%s_RMSE_Boxplot.png', estimator, scenario));
 
         pause(0.1);
-        close all;
     end
 
     function trainDDN()
