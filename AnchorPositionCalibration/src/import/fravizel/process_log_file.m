@@ -58,6 +58,11 @@ function process_log_file(inputLogFile, anchorsFile, tagSamplesFile)
             distancesStr = sampleMatch{1}{2};
             distancePattern = '([A-F0-9]+) distance=Distance{length=([0-9]+), quality=[0-9]+}';
             distanceMatches = regexp(distancesStr, distancePattern, 'tokens');
+            
+            % Create a temporary table to hold the distances for this timestamp
+            tempTagSamples = {};
+            
+            % Process each distance
             for i = 1:length(distanceMatches)
                 anchorHexID = distanceMatches{i}{1};
                 distance = str2double(distanceMatches{i}{2});
@@ -68,15 +73,25 @@ function process_log_file(inputLogFile, anchorsFile, tagSamplesFile)
                 % Retrieve the numerical anchor ID based on the last 4 hex digits
                 anchorID = anchorIDMap(anchorSuffix);
 
-                % Store the tag sample with sample number
-                tagSamples{end+1, 1} = timestamp; % Timestamp
-                tagSamples{end, 2} = anchorID; % Numerical Anchor ID
-                tagSamples{end, 3} = distance; % Distance
-                tagSamples{end, 4} = sampleCounter; % Sample number
-                
-                % Increment the sample number counter
-                sampleCounter = sampleCounter + 1;
+                % Store the tag sample with the same timestamp and the incremented sample number
+                tempTagSamples{end+1, 1} = timestamp; % Timestamp
+                tempTagSamples{end, 2} = anchorID; % Numerical Anchor ID
+                tempTagSamples{end, 3} = distance; % Distance
             end
+            
+            % Sort by anchor ID within the same timestamp
+            tempTagSamples = sortrows(tempTagSamples, 2);
+            
+            % Assign the same sample number for all distances with the same timestamp
+            for j = 1:size(tempTagSamples, 1)
+                tempTagSamples{j, 4} = sampleCounter; % Sample number
+            end
+            
+            % Add the sorted samples to the main tagSamples list
+            tagSamples = [tagSamples; tempTagSamples];
+            
+            % Increment the sample number counter
+            sampleCounter = sampleCounter + 1;
         end
     end
 
