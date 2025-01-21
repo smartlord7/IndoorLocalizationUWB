@@ -435,7 +435,7 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         mx = str2double(roomDimXEdit.String);
         my = str2double(roomDimYEdit.String);
         mz = str2double(roomDimZEdit.String);
-        roomDimensions = [mx, my, mz];
+        roomDimensions = [0, mx; 0, my; 0, mz];
 
         bounds = buildBounds(roomDimensions, numAnchors);
         disp('Bounds built for anchor positions.');
@@ -464,12 +464,27 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         fprintf(csvFileTag, 'Estimator,Scenario,Topology,Sample,Error\n');
 
         % Generate true anchor positions
-        if ~ isempty(anchorsData)
+        if isempty(anchorsData)
             trueAnchors = generateAnchors(roomDimensions, numAnchors);
             disp('True anchor positions generated.');
         else
             trueAnchors = [anchorsData.X, anchorsData.Y, anchorsData.Z];
+            numAnchors = size(trueAnchors, 1);
+            % Extract min and max values from the anchors data
+            minX = min(anchorsData.X);  % Minimum x-coordinate
+            maxX = max(anchorsData.X);  % Maximum x-coordinate
+            minY = min(anchorsData.Y);  % Minimum y-coordinate
+            maxY = max(anchorsData.Y);  % Maximum y-coordinate
+            minZ = min(anchorsData.Z);  % Minimum z-coordinate
+            maxZ = max(anchorsData.Z);  % Maximum z-coordinate
+            
+            % Define the roomDimensions matrix with appropriate min and max values
+            roomDimensions = [minX, maxX;  % x-dimension: min and max
+                  minY, maxY;  % y-dimension: min and max
+                  minZ, maxZ]; % z-dimension: min and max
+            bounds = buildBounds(roomDimensions, numAnchors);
         end
+
 
 
         if useInterAnchorDistances
