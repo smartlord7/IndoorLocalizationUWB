@@ -94,6 +94,123 @@ useInterAnchorDistances = false;
         end
     end
 
+
+% Initialize variables to store imported data
+anchorsData = [];
+tagSamplesData = [];
+
+% Add a button to load anchor data
+uicontrol('Style', 'pushbutton', 'Position', [10, 50, 150, 30], 'String', 'Load Anchors Data', ...
+    'Callback', @loadAnchorsDataCallback);
+
+% Add a button to load tag samples data
+uicontrol('Style', 'pushbutton', 'Position', [10, 20, 150, 30], 'String', 'Load Tag Samples Data', ...
+    'Callback', @loadTagSamplesDataCallback);
+
+% Initialize variables to store imported data
+anchorsData = [];
+tagSamplesData = [];
+
+% Callback function for loading anchor data
+    function loadAnchorsDataCallback(~, ~)
+        % Prompt user to select the anchor positions CSV file
+        [anchorFile, anchorPath] = uigetfile('*.csv', 'Select Anchor Positions CSV');
+        if isequal(anchorFile, 0)
+            disp('No anchor positions file selected.');
+            return;
+        end
+        % Load the anchor positions from the selected CSV file
+        anchorsData = readtable(fullfile(anchorPath, anchorFile));
+        disp('Anchor positions loaded.');
+        
+        % Update the room and anchors plot based on the loaded data
+        plotRoomAndAnchors(anchorsData);
+    end
+
+% Callback function for loading tag samples data
+    function loadTagSamplesDataCallback(~, ~)
+        % Prompt user to select the tag samples CSV file
+        [tagSampleFile, tagSamplePath] = uigetfile('*.csv', 'Select Tag Samples CSV');
+        if isequal(tagSampleFile, 0)
+            disp('No tag samples file selected.');
+            return;
+        end
+        % Load the tag samples from the selected CSV file
+        tagSamplesData = readtable(fullfile(tagSamplePath, tagSampleFile));
+        disp('Tag samples loaded.');
+        
+        % Optionally, print out the loaded data
+        disp(tagSamplesData);
+    end
+
+% Function to plot room and anchors based on loaded data
+   function plotRoomAndAnchors(anchorsData)
+    if isempty(anchorsData)
+        disp('No anchor data available to plot.');
+        return;
+    end
+
+    % Calculate the room dimensions based on the anchor positions
+    minX = min(anchorsData.X);
+    maxX = max(anchorsData.X);
+    minY = min(anchorsData.Y);
+    maxY = max(anchorsData.Y);
+    minZ = min(anchorsData.Z);
+    maxZ = max(anchorsData.Z);
+     anchorNoise = str2double(anchorNoiseEdit.String);  % Retrieve anchor noise for uncertainty visualization
+
+
+    % Clear previous plots
+    % Clear the axes and set limits
+    cla(ax);
+    hold(ax, 'on');
+    axis(ax, [-1 - anchorNoise maxX + 1 + anchorNoise -1 - anchorNoise maxY + 1 + anchorNoise -1 - anchorNoise maxZ + 1 + anchorNoise]);
+    xlabel(ax, 'X (m)');
+    ylabel(ax, 'Y (m)');
+    zlabel(ax, 'Z (m)');
+    grid(ax, 'on');
+    view(ax, 3);
+    axis(ax, 'equal');
+    % Define the room size to fit all anchors with some margin
+    margin = 1;  % Margin in meters to add around the anchors
+    roomDims = [maxX - minX + 2 * margin, maxY - minY + 2 * margin, maxZ - minZ + 2 * margin];
+
+    % Update the room boundaries (make sure they fit all the anchors)
+    % Room bounds will be from min to max with a margin
+    xlim([minX - margin, maxX + margin]);
+    ylim([minY - margin, maxY + margin]);
+    zlim([minZ - margin, maxZ + margin]);
+   
+    
+    % Plot anchors as spheres with Gouraud lighting
+    [sx, sy, sz] = sphere(20);  % Sphere for anchor representation
+    for i = 1:height(anchorsData)
+        x = anchorsData.X(i);
+        y = anchorsData.Y(i);
+        z = anchorsData.Z(i);
+
+         % Plot the main anchor as a solid sphere
+        surf(ax, x + 0.2*sx, y + 0.2*sy, z + 0.2*sz, ...
+            'FaceColor', 'r', 'EdgeColor', 'none', 'FaceLighting', 'gouraud');
+
+        % Generate points for 3D Gaussian cloud around the anchor
+        numCloudPoints = 500;  % Number of points in the Gaussian cloud
+        cloudPoints = mvnrnd([x, y, z], (anchorNoise^2) * eye(3), numCloudPoints);
+
+        % Plot the Gaussian-distributed cloud points
+        scatter3(ax, cloudPoints(:, 1), cloudPoints(:, 2), cloudPoints(:, 3), ...
+            10, 'MarkerFaceColor', [0.5, 0.5, 1], 'MarkerEdgeColor', 'none', ...
+            'MarkerFaceAlpha', 0.3);  % Semi-transparent points
+    end
+    
+    % Labeling
+    xlabel(ax, 'X (m)');
+    ylabel(ax, 'Y (m)');
+    zlabel(ax, 'Z (m)');
+    title(ax, 'Room with Anchors and Gaussian Clouds');
+end
+
+
 % Selected estimators list
 selectedEstimators = {'NLS (dynamic)', 'MLE', 'EKF', 'LLS', 'WLS', 'IR', 'GA', 'CALNN+NLS (static)', 'CALNN+NLS (dynamic)', 'C'};
 
@@ -226,7 +343,7 @@ initializeEstimatorParameters();
     end
 % Axes for the 3D room and anchors plot
 ax = axes('Parent', fig, 'Position', [0.4, 0.2, 0.55, 0.75]);
-plotRoomAndAnchors([]);  % Initial plot of the room and anchors
+plotRoomAndAnchors2([]);  % Initial plot of the room and anchors
 
 % Run Simulation button
 uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run Simulation', ...
@@ -234,10 +351,10 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
 
 % Callback to update room and anchors
     function updateRoomAndAnchors(~, ~)
-        plotRoomAndAnchors([]);
+        plotRoomAndAnchors2([]);
     end
 
-    function plotRoomAndAnchors(tagPositions)
+    function plotRoomAndAnchors2(tagPositions)
         % Get the room dimensions and number of anchors
         mx = str2double(roomDimXEdit.String);
         my = str2double(roomDimYEdit.String);
@@ -327,7 +444,9 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         tagPositionsMoving = generateEquallySpacedPath(numSamples, roomDimensions);
         disp('Generated random path for moving tag.');
 
-        plotRoomAndAnchors(tagPositionsMoving);
+        if isempty(tagSamplesData)
+            plotRoomAndAnchors2(tagPositionsMoving);
+        end
 
         pause(1);
 
@@ -345,8 +464,12 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         fprintf(csvFileTag, 'Estimator,Scenario,Topology,Sample,Error\n');
 
         % Generate true anchor positions
-        trueAnchors = generateAnchors(roomDimensions, numAnchors);
-        disp('True anchor positions generated.');
+        if ~ isempty(anchorsData)
+            trueAnchors = generateAnchors(roomDimensions, numAnchors);
+            disp('True anchor positions generated.');
+        else
+            trueAnchors = [anchorsData.X, anchorsData.Y, anchorsData.Z];
+        end
 
 
         if useInterAnchorDistances
@@ -595,7 +718,19 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         figure('Position', get(0, 'Screensize'));
         for anchor = 1:numAnchors
             subplot(numAnchors, 1, anchor);
-            plot(rmseData(anchor, :), 'LineWidth', 1.5); % Each line represents the RMSE of an anchor over samples
+            rmseLine = rmseData(anchor, :);
+            plot(rmseLine, 'LineWidth', 1.5); % Each line represents the RMSE of an anchor over samples
+        
+            % Label the last point
+            lastRMSE = rmseLine(end);
+            hold on;
+            plot(length(rmseLine), lastRMSE, 'ro', 'MarkerFaceColor', 'r'); % Red circle at last point
+            text(length(rmseLine), lastRMSE, sprintf(' %.2f', lastRMSE), 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right'); % Display RMSE value at last point
+        
+            % Display RMSE value in the console
+            fprintf('Anchor %d - Last RMSE Value: %.2f\n', anchor, lastRMSE);
+        
+            % Set the title and labels
             if anchor == numAnchors
                 t = 'Tag';
             else

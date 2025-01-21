@@ -29,6 +29,11 @@ function process_log_file(inputLogFile, anchorsFile, tagSamplesFile)
             y = str2double(anchorMatch{1}{3});
             z = str2double(anchorMatch{1}{4});
             
+            % Convert anchor positions from millimeters to meters
+            x = x / 1000;  % Convert x to meters
+            y = y / 1000;  % Convert y to meters
+            z = z / 1000;  % Convert z to meters
+            
             % Extract the last 4 digits of the hex anchor ID
             anchorSuffix = anchorHexID(end-3:end);
             
@@ -44,9 +49,9 @@ function process_log_file(inputLogFile, anchorsFile, tagSamplesFile)
 
             % Store the anchor data (with the numerical anchor ID)
             anchors{end+1, 1} = anchorID; % Numerical ID
-            anchors{end, 2} = x; % X position
-            anchors{end, 3} = y; % Y position
-            anchors{end, 4} = z; % Z position
+            anchors{end, 2} = x; % X position (in meters)
+            anchors{end, 3} = y; % Y position (in meters)
+            anchors{end, 4} = z; % Z position (in meters)
             continue;
         end
 
@@ -67,6 +72,9 @@ function process_log_file(inputLogFile, anchorsFile, tagSamplesFile)
                 anchorHexID = distanceMatches{i}{1};
                 distance = str2double(distanceMatches{i}{2});
                 
+                % Convert distance from millimeters to meters
+                distanceInMeters = distance / 1000;  % Conversion factor: 1 mm = 0.001 m
+                
                 % Extract the last 4 digits of the hex anchor ID
                 anchorSuffix = anchorHexID(end-3:end);
                 
@@ -76,7 +84,7 @@ function process_log_file(inputLogFile, anchorsFile, tagSamplesFile)
                 % Store the tag sample with the same timestamp and the incremented sample number
                 tempTagSamples{end+1, 1} = timestamp; % Timestamp
                 tempTagSamples{end, 2} = anchorID; % Numerical Anchor ID
-                tempTagSamples{end, 3} = distance; % Distance
+                tempTagSamples{end, 3} = distanceInMeters; % Distance (in meters)
             end
             
             % Sort by anchor ID within the same timestamp
