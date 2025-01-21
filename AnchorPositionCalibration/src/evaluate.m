@@ -512,9 +512,9 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
             disp(['Simulating for estimator: ', estName]);
 
             % Scenario 1: Static Tag
-            rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds);
-            plotAndSaveResults(rmseStatic, estName, 'Static');
-            disp(['Static scenario RMSE calculated for estimator: ', estName]);
+            %rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds);
+            %plotAndSaveResults(rmseStatic, estName, 'Static');
+            %disp(['Static scenario RMSE calculated for estimator: ', estName]);
 
             % Scenario 2: Moving Tag
             rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds);
@@ -522,7 +522,7 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
             disp(['Moving scenario RMSE calculated for estimator: ', estName]);
 
             % Save errors to CSV
-            saveErrorsToCSV(rmseStatic, estName, 'Static', csvFileAnchor, csvFileTag);
+            %saveErrorsToCSV(rmseStatic, estName, 'Static', csvFileAnchor, csvFileTag);
             saveErrorsToCSV(rmseMoving, estName, 'Moving', csvFileAnchor, csvFileTag);
             disp(['Errors saved to CSV for estimator: ', estName]);
         end
