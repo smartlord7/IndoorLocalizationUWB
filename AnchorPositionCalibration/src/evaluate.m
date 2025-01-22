@@ -483,8 +483,12 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
                   minY, maxY;  % y-dimension: min and max
                   minZ, maxZ]; % z-dimension: min and max
             bounds = buildBounds(roomDimensions, numAnchors);
-            [tagPositionsMoving, tagDistances] = processTagSamples(tagSamplesData);
-            numSamples = size(tagPositionsMoving, 1);
+            if ~isempty(tagSamplesData)
+                [tagPositionsMoving, tagAnchorDistances] = processTagSamples(tagSamplesData);
+                numSamples = size(tagPositionsMoving, 1);
+            else
+                tagAnchorDistances = [];
+            end
         end
 
 
@@ -514,17 +518,17 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
             disp(['Simulating for estimator: ', estName]);
 
             % Scenario 1: Static Tag
-            %rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds);
-            %plotAndSaveResults(rmseStatic, estName, 'Static');
-            %disp(['Static scenario RMSE calculated for estimator: ', estName]);
+            rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds, []);
+            plotAndSaveResults(rmseStatic, estName, 'Static');
+            disp(['Static scenario RMSE calculated for estimator: ', estName]);
 
             % Scenario 2: Moving Tag
-            rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds);
+            rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds, tagAnchorDistances);
             plotAndSaveResults(rmseMoving, estName, 'Moving');
             disp(['Moving scenario RMSE calculated for estimator: ', estName]);
 
             % Save errors to CSV
-            %saveErrorsToCSV(rmseStatic, estName, 'Static', csvFileAnchor, csvFileTag);
+            saveErrorsToCSV(rmseStatic, estName, 'Static', csvFileAnchor, csvFileTag);
             saveErrorsToCSV(rmseMoving, estName, 'Moving', csvFileAnchor, csvFileTag);
             disp(['Errors saved to CSV for estimator: ', estName]);
         end
@@ -541,7 +545,7 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
 
 
 % Function to simulate calibration
-    function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds)
+    function rmse = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositions, estimator, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds, tagAnchorDistances)
         global parametersStruct;
         % Initialize matrix to accumulate RMSE
         rmse = zeros(numAnchors + 1, numSamples, numTopologies);
@@ -555,11 +559,16 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
             % Current tag position
             currentTagPos = tagPositions(sample, :);
 
-            % Simulate distances with noise for the current tag position
-            trueDistances = sqrt(sum((trueAnchors - currentTagPos).^2, 2));
-            noisyDistances = trueDistances + randn(size(trueDistances)) * distanceNoise;
-            % Append the current noisy distances to the history
-            noisyDistancesHistory = [noisyDistancesHistory; noisyDistances'];
+            if ~ isempty(tagAnchorDistances)
+                noisyDistances = tagAnchorDistances(sample, :)';
+                noisyDistancesHistory = [noisyDistancesHistory; noisyDistances'];
+            else
+                % Simulate distances with noise for the current tag position
+                trueDistances = sqrt(sum((trueAnchors - currentTagPos).^2, 2));
+                noisyDistances = trueDistances + randn(size(trueDistances)) * distanceNoise;
+                % Append the current noisy distances to the history
+                noisyDistancesHistory = [noisyDistancesHistory; noisyDistances'];
+            end
 
             estimatedAnchors = [];
 
@@ -594,6 +603,7 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
                         tagPos = tagPositions(sample - memory + 1:sample, :);
                         noisyDistancesHistory_ = noisyDistancesHistory(sample - memory + 1:sample, :);
                     end
+
                     %testData = cat(2, noisyDistances', estimatedTagPos);
                     %testData = cat(2, testData, reshape(initialAnchors',
                     %1, [])); % Transpose and flatten); [testData, ps] =
