@@ -19,7 +19,7 @@ function estimatedAnchors = nonlinearLeastSquares(distances_noisy, true_inter_an
     ub = reshape(bounds(2, :, :), numVars, 1);
 
     % Use nonlinear least squares solver to minimize the residuals
-    options = optimoptions('lsqnonlin', 'Display', 'final-detailed', 'MaxIterations', 10000, 'Algorithm','levenberg-marquardt');
+    options = optimoptions('lsqnonlin', 'Display', 'final-detailed', 'MaxIterations', 10000, 'Algorithm','levenberg-marquardt', 'FunctionTolerance', 1e-12);
     [estimatedAnchorsVec, ~] = lsqnonlin(objectiveFunction, initialGuess, lb, ub, options);
 
     % Reshape the vector of estimated anchors back into matrix form
