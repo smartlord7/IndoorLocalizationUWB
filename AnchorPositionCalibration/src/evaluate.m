@@ -518,9 +518,9 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
             disp(['Simulating for estimator: ', estName]);
 
             % Scenario 1: Static Tag
-            rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds, []);
-            plotAndSaveResults(rmseStatic, estName, 'Static');
-            disp(['Static scenario RMSE calculated for estimator: ', estName]);
+            %rmseStatic = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsStatic, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds, []);
+            %plotAndSaveResults(rmseStatic, estName, 'Static');
+            %disp(['Static scenario RMSE calculated for estimator: ', estName]);
 
             % Scenario 2: Moving Tag
             rmseMoving = simulateCalibration(numTopologies, trueAnchors, initialAnchors, tagPositionsMoving, estName, numAnchors, distanceNoise, true_inter_anchor_distances, anchorNoise, toaNoise, numSamples, bounds, tagAnchorDistances);
@@ -528,7 +528,7 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
             disp(['Moving scenario RMSE calculated for estimator: ', estName]);
 
             % Save errors to CSV
-            saveErrorsToCSV(rmseStatic, estName, 'Static', csvFileAnchor, csvFileTag);
+            %saveErrorsToCSV(rmseStatic, estName, 'Static', csvFileAnchor, csvFileTag);
             saveErrorsToCSV(rmseMoving, estName, 'Moving', csvFileAnchor, csvFileTag);
             disp(['Errors saved to CSV for estimator: ', estName]);
         end
@@ -675,7 +675,7 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         % :);
 
         % Analyze each scenario and subgroup
-        analyzeSubgroup(staticAnchorErrors, estimators, 'Static', 'Anchor');
+        %analyzeSubgroup(staticAnchorErrors, estimators, 'Static', 'Anchor');
         analyzeSubgroup(movingAnchorErrors, estimators, 'Moving', 'Anchor');
         % analyzeSubgroup(staticTagErrors, estimators, 'Static', 'Tag');
         % analyzeSubgroup(movingTagErrors, estimators, 'Moving', 'Tag');
@@ -743,6 +743,9 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
 
         % Plot RMSE evolution for each anchor
         figure('Position', get(0, 'Screensize'));
+        % Initialize a vector to store the last RMSE values for each anchor
+        lastRMSEValues = zeros(1, numAnchors - 1);
+
         for anchor = 1:numAnchors
             subplot(numAnchors, 1, anchor);
             rmseLine = rmseData(anchor, :);
@@ -750,12 +753,15 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         
             % Label the last point
             lastRMSE = rmseLine(end);
+            if anchor < numAnchors
+                lastRMSEValues(anchor) = lastRMSE; % Store the last RMSE value except for the tag
+            end
             hold on;
             plot(length(rmseLine), lastRMSE, 'ro', 'MarkerFaceColor', 'r'); % Red circle at last point
             text(length(rmseLine), lastRMSE, sprintf(' %.2f', lastRMSE), 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right'); % Display RMSE value at last point
         
             % Display RMSE value in the console
-            fprintf('Anchor %d - Last RMSE Value: %.2f\n', anchor, lastRMSE);
+            fprintf('Anchor %d - Last RMSE Value: %.4f\n', anchor, lastRMSE);
         
             % Set the title and labels
             if anchor == numAnchors
@@ -769,6 +775,17 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
             set(gca, 'FontSize', 11); % Increase font size for axes
             grid on;
         end
+        
+        % Calculate aggregate statistics for the final RMSE values
+        meanRMSE = mean(lastRMSEValues);
+        medianRMSE = median(lastRMSEValues);
+        stdRMSE = std(lastRMSEValues);
+
+        % Display the aggregate statistics in the console
+        fprintf('Aggregate Final RMSE Statistics:\n');
+        fprintf('Mean of final RMSE: %.4f\n', meanRMSE);
+        fprintf('Median of final RMSE: %.4f\n', medianRMSE);
+        fprintf('Standard deviation of final RMSE: %.4f\n', stdRMSE);
         sgtitle(sprintf('%s - %s: RMSE Evolution', estimator, scenario)); % Super title for all subplots
         saveas(gcf, sprintf('../img/%s_%s_RMSE_Evolution.png', estimator, scenario));
 
