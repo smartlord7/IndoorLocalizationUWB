@@ -483,6 +483,8 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
                   minY, maxY;  % y-dimension: min and max
                   minZ, maxZ]; % z-dimension: min and max
             bounds = buildBounds(roomDimensions, numAnchors);
+            [tagPositionsMoving, tagDistances] = processTagSamples(tagSamplesData);
+            numSamples = size(tagPositionsMoving, 1);
         end
 
 
