@@ -7,9 +7,9 @@ end
 
 % Example setup and initialization
 rng(0);
-n_anchors = 8;
+n_anchors = 16;
 std = 1; 
-mx = [10 10 10];
+mx = [0, 100; 0, 100; 0, 100];
 bounds = buildBounds(mx, n_anchors);
 
 real_anchors = generateAnchors(mx, n_anchors);
@@ -25,7 +25,7 @@ for i = 1:n_anchors-1
 end
 
 % Define 2D grid space for the tag position
-[x_vals, y_vals] = meshgrid(linspace(0, mx(1), 10), linspace(0, mx(2), 10));
+[x_vals, y_vals] = meshgrid(linspace(0, mx(2), 10), linspace(0, mx(4), 10));
 tag_positions = [];
 tag_distances = [];
 error_grid = zeros(size(x_vals));
