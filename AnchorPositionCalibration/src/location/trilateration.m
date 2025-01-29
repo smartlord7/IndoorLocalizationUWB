@@ -1,4 +1,4 @@
-function [estimatedTagPosition] = trilateration(trueAnchors, estimatedAnchors, trueTagPosition, anchorTransmissionRadius, toaStd, tagPosStd)
+function [estimatedTagPosition] = trilateration(trueAnchors, estimatedAnchors, trueTagPosition, anchorTransmissionRadius, toaStd, initialGuess)
     % Calculate distances from true tag position to each anchor
     distances = sqrt(sum((estimatedAnchors - trueTagPosition).^2, 2));
 
@@ -21,18 +21,16 @@ function [estimatedTagPosition] = trilateration(trueAnchors, estimatedAnchors, t
     ToA_noisy = ToA + randn(size(ToA)) * toaStd; % Add noise with standard deviation of 1 ns
 
     % Calculate anchor calibration errors (deviation from true anchors)
-    anchorErrors = sqrt(sum((filteredAnchors - trueAnchors(validAnchors, :)).^2, 2));
+    % anchorErrors = sqrt(sum((filteredAnchors - trueAnchors(validAnchors, :)).^2, 2));
     
     % Multilateration to estimate tag position with anchor deviation penalty
-    costFunction = @(pos) sum(((sqrt(sum((filteredAnchors - pos).^2, 2)) - ToA_noisy * c) + anchorErrors).^2);
+    costFunction = @(pos) sum(((sqrt(sum((filteredAnchors - pos).^2, 2)) - ToA_noisy * c)).^2);
 
     % Initial guess for the tag position
-    initialGuess = trueTagPosition + randn(size(trueTagPosition)) * tagPosStd;
+    % initialGuess = trueTagPosition + randn(size(trueTagPosition)) * tagPosStd;
 
-    % Set optimization options to increase the number of function evaluations and iterations
-    options = optimset('MaxFunEvals', 10000, 'MaxIter', 10000, 'TolX', 1e-8, 'TolFun', 1e-8);
-
-    % Estimate tag position using fminsearch with the specified options
-    estimatedTagPosition = fminsearch(costFunction, initialGuess, options);
+    % Use lsqnonlin to minimize the error
+    options = optimoptions('lsqnonlin', 'Display', 'off', 'Algorithm', 'levenberg-marquardt');
+    estimatedTagPosition = lsqnonlin(costFunction, initialGuess, [], [], options);
 end
 
