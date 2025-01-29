@@ -363,7 +363,7 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         anchorNoise = str2double(anchorNoiseEdit.String);  % Retrieve anchor noise for uncertainty visualization
 
         % Generate anchor positions randomly within the room dimensions
-        anchorPositions = generateAnchors([mx, my, mz], numAnchors);
+        anchorPositions = generateAnchors([0, mx; 0, my; 0, mz], numAnchors);
 
         % Clear the axes and set limits
         cla(ax);
@@ -466,6 +466,7 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         % Generate true anchor positions
         if isempty(anchorsData)
             trueAnchors = generateAnchors(roomDimensions, numAnchors);
+            tagAnchorDistances = [];
             disp('True anchor positions generated.');
         else
             trueAnchors = [anchorsData.X, anchorsData.Y, anchorsData.Z];
@@ -552,6 +553,7 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
         % Initialize storage for noisy distances
         noisyDistancesHistory = [];
         disp(['Simulating calibration for estimator: ', estimator]);
+        estimatedTagPos = [];
 
         % Perform calibration and compute RMSE
         for sample = 1:numSamples
@@ -572,8 +574,13 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
 
             estimatedAnchors = [];
 
-            estimatedTagPos = trilateration(trueAnchors, trueAnchors, currentTagPos, 1000, toaNoise, distanceNoise);
-            rmse(numAnchors + 1, sample, 1) = sqrt(mean(((estimatedTagPos - currentTagPos).^2), 2));
+            if ~isempty(estimatedTagPos)
+                initialGuess = estimatedTagPos;
+            else
+                initialGuess = [0 0 0];
+            end
+
+            estimatedTagPos = currentTagPos;
             tagPos = tagPositions(1:sample, :);
 
             % Estimate anchor positions based on the noisy distances
@@ -633,6 +640,8 @@ uicontrol('Style', 'pushbutton', 'Position', [10, 150, 150, 30], 'String', 'Run 
 
             % Compute RMSE for the current topology
             rmse(1:numAnchors, sample, 1) = sqrt(mean(((estimatedAnchors - trueAnchors).^2), 2));
+            estimatedTagPos = trilateration(trueAnchors, estimatedAnchors, currentTagPos, 1000, toaNoise, initialGuess);
+            rmse(numAnchors + 1, sample, 1) = sqrt(mean(((estimatedTagPos - currentTagPos).^2), 2));
         end
 
         % Compute average RMSE over all samples and topologies
