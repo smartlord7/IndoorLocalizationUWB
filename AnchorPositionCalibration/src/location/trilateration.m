@@ -1,6 +1,6 @@
 function [estimatedTagPosition] = trilateration(trueAnchors, estimatedAnchors, trueTagPosition, anchorTransmissionRadius, toaStd, initialGuess)
     % Calculate distances from true tag position to each anchor
-    distances = sqrt(sum((estimatedAnchors - trueTagPosition).^2, 2));
+    distances = sqrt(sum((trueAnchors - trueTagPosition).^2, 2));
 
     % Filter anchors based on transmission radius
     validAnchors = distances <= anchorTransmissionRadius;
