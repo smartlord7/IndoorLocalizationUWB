@@ -1,11 +1,11 @@
-function trueAnchors = generateAnchors(mx, numAnchors)
+function trueAnchors = generateAnchors(roomDimensions, numAnchors)
     % Determine the number of anchors per dimension (assuming a cubic grid)
     numAnchorsPerDim = ceil(nthroot(numAnchors, 3)); % Find cube root and round up
     
     % Create linearly spaced points for each dimension
-    linspaceX = linspace(0, mx(1), numAnchorsPerDim);
-    linspaceY = linspace(0, mx(2), numAnchorsPerDim);
-    linspaceZ = linspace(0, mx(3), numAnchorsPerDim);
+    linspaceX = linspace(roomDimensions(1, 1), roomDimensions(1, 2), numAnchorsPerDim);
+    linspaceY = linspace(roomDimensions(2, 1), roomDimensions(2, 2), numAnchorsPerDim);
+    linspaceZ = linspace(roomDimensions(3, 1), roomDimensions(3, 2), numAnchorsPerDim);
     
     % Generate grid of points
     [X, Y, Z] = ndgrid(linspaceX, linspaceY, linspaceZ);
