@@ -8,9 +8,10 @@ end
 % Example setup and initialization
 rng(0);
 n_anchors = 16;
-std = 1; 
-mx = [0, 100; 0, 100; 0, 100];
-bounds = buildBounds(mx, n_anchors);
+std = 3; 
+mx = [100; 100; 100];
+b = [0, 100; 0, 100; 0, 100];
+bounds = buildBounds(b, n_anchors);
 
 real_anchors = generateAnchors(mx, n_anchors);
 initial_anchors = real_anchors + std * randn(n_anchors, 3);
@@ -25,7 +26,7 @@ for i = 1:n_anchors-1
 end
 
 % Define 2D grid space for the tag position
-[x_vals, y_vals] = meshgrid(linspace(0, mx(2), 10), linspace(0, mx(4), 10));
+[x_vals, y_vals] = meshgrid(linspace(0, mx(1), 20), linspace(0, mx(2), 20));
 tag_positions = [];
 tag_distances = [];
 error_grid = zeros(size(x_vals));
@@ -48,7 +49,7 @@ for ix = 1:numel(x_vals)
     % Calculate mean squared error between true and estimated anchors
     error = mean(sqrt(sum((estimated_anchors - real_anchors).^2, 2)));
     display("MSE: " + error);
-    error_grid(ix) = error;
+    error_grid(ix) = log(error);
 end
 
 % Plotting the error as a 3D surface
