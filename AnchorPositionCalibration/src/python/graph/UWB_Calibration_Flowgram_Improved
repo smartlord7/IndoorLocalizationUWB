@@ -1,0 +1,28 @@
+digraph {
+	nodesep=0.5 rankdir=TB ranksep=0.75 splines=ortho
+	node [fontname=Arial fontsize=12 shape=ellipse style=filled]
+	A [label="Review Documentation" fillcolor=lightyellow]
+	B [label="Retrieve True Anchor Positions" fillcolor=lightblue]
+	C [label="Compute Inter-Anchor Distances" fillcolor=lightblue]
+	D [label="Retrieve Manufacturer's Anchor Estimates" fillcolor=lightblue]
+	E [label="Define a Calibration Trajectory" fillcolor=lightgreen]
+	F [label="Execute the Trajectory" fillcolor=lightcoral]
+	G [label="Run the Calibration Function" fillcolor=lightblue]
+	I [label="Compare Calibration Results" fillcolor=lightgrey]
+	J [label="Define the Location Trajectory" fillcolor=lightgreen]
+	K [label="Test on the Location Trajectory" fillcolor=lightcoral]
+	A -> B
+	B -> C
+	C -> D
+	D -> E
+	E -> F
+	F -> G
+	G -> I
+	I -> J
+	J -> K
+	B -> B [label="Repeat M times" color=red fontcolor=red style=dashed]
+	C -> C [label="Repeat M times" color=red fontcolor=red style=dashed]
+	D -> D [label="Repeat N times" color=red fontcolor=red style=dashed]
+	K -> K [label="Repeat K times" color=red fontcolor=red style=dashed]
+	G -> F [label="Repeat N times" color=blue constraint=false fontcolor=blue headport=e style=dashed tailport=e]
+}
