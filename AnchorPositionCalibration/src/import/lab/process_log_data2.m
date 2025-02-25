@@ -32,22 +32,24 @@ function process_log_data(folder_path, anchor_file, trajectory_file, num_samples
             anchor_distances = containers.Map(keys(anchors), num2cell(nan(1, length(anchors))));
             tag_position = NaN(1,3);
             
-            % Extract distances from log line
-            tokens = regexp(line, '([A-F0-9]+)\[([-0-9\.]+),([-0-9\.]+),([-0-9\.]+)\]=(\d+\.\d+)', 'tokens');
-            est_tokens = regexp(line, 'est\[([-0-9\.]+),([-0-9\.]+),([-0-9\.]+)', 'tokens');
+            % Extract anchor distances
+            tokens = regexp(line, 'AN\d,([A-F0-9]+),([-0-9\.]+),([-0-9\.]+),([-0-9\.]+),([-0-9\.]+)', 'tokens');
+            pos_tokens = regexp(line, 'POS,([-0-9\.]+),([-0-9\.]+),([-0-9\.]+),(\d+)', 'tokens');
             
             for i = 1:length(tokens)
-                hex_code = tokens{i}{1};
+                hex_code = tokens{i}{1};  % Anchor hex ID
+                distance = str2double(tokens{i}{5}); % Extract distance
+                
                 if isKey(anchors, hex_code)
-                    anchor_distances(hex_code) = str2double(tokens{i}{5});
+                    anchor_distances(hex_code) = distance;
                 end
             end
             
             % Extract estimated tag position
-            if ~isempty(est_tokens)
-                tag_position = [str2double(est_tokens{1}{1}), ...
-                                str2double(est_tokens{1}{2}), ...
-                                str2double(est_tokens{1}{3})];
+            if ~isempty(pos_tokens)
+                tag_position = [str2double(pos_tokens{1}{1}), ...
+                                str2double(pos_tokens{1}{2}), ...
+                                str2double(pos_tokens{1}{3})];
             end
             
             % Handle missing distances using real anchor positions
@@ -86,4 +88,3 @@ function process_log_data(folder_path, anchor_file, trajectory_file, num_samples
     
     fclose(fid);
 end
-
